@@ -29,6 +29,10 @@ elsewhere.
 Native customization adds an extension-owned class and generated scoped stylesheet to supported
 pages. It does not rewrite Schoology content or store page HTML.
 
+To preserve readability, the extension may inspect computed foreground and background colors inside
+the native regions it styles. This calculation remains in the page, is bounded to detected regions,
+and is never stored or transmitted.
+
 ## Optional credentials
 
 The current milestone does not request or store Schoology API credentials. Any future credential

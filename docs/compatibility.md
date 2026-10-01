@@ -19,3 +19,8 @@ Native customization detects each selector group independently. Unknown groups r
 original styling. Official grade, submission, missing, late, and other status classes are excluded
 from extension button/link selectors, but institution-specific status markup still requires manual
 verification.
+
+Within detected regions, a bounded observer checks links, tabs, headings, labels, buttons, and text
+against their effective rendered background, including transparent ancestors. It annotates only
+failing elements and removes annotations when customization is disabled. Images, iframes, and
+official status/grade regions are excluded.

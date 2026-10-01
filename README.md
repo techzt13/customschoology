@@ -17,6 +17,8 @@ implementation and does not include SchoologyPlus source or assets.
   color controls.
 - Safe, reversible native Schoology styling for detected headers, page surfaces, course cards,
   rails, controls, optional system-font families, spacing, width, borders, corners, and shadows.
+- Bounded automatic contrast correction for text and controls inside extension-touched native
+  regions, including transparent and mixed-background descendants.
 - Local export, validated import, reset, permission revocation, and no telemetry.
 
 Grade prediction, API credentials, notifications, background polling, and Firefox packaging are

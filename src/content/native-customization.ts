@@ -4,8 +4,10 @@ import {
   SELECTOR_CONTRACT_VERSION
 } from "../schoology/customization/selectors";
 import { generateNativeThemeCss } from "../schoology/customization/native-theme";
+import { NativeContrastAnnotator } from "./native-contrast";
 
 const STYLE_ID = "schoology-companion-native-theme";
+const contrastAnnotator = new NativeContrastAnnotator();
 
 export function applyNativeCustomization(settings: Settings): void {
   document.documentElement.classList.toggle(
@@ -26,9 +28,12 @@ export function applyNativeCustomization(settings: Settings): void {
     settings.density,
     detectSelectorSupport(document)
   );
+  if (settings.nativeCustomization.enabled) contrastAnnotator.update();
+  else contrastAnnotator.disable();
 }
 
 export function removeNativeCustomization(): void {
+  contrastAnnotator.disable();
   document.documentElement.classList.remove("sc-native-customized");
   document.documentElement.removeAttribute("data-sc-selector-contract");
   document.querySelector(`#${STYLE_ID}`)?.remove();

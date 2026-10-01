@@ -40,6 +40,10 @@ screenshots, fixtures, bug reports, or repository files.
 - Use every per-setting reset and reset-all; confirm Schoology returns immediately to its prior
   native presentation when customization is disabled.
 - Confirm official submitted, late, missing, grade, and alert semantics remain visible and readable.
+- Check active/inactive Recent Activity and Course Dashboard tabs on light and dark nested surfaces;
+  normal text must reach 4.5:1 and large/control text 3:1.
+- Insert or reveal asynchronous dashboard content and confirm contrast correction occurs without a
+  full-document rewrite, observer loop, or loss of hover/focus/active states.
 - Navigate to an unknown or institution-customized layout and confirm unsupported regions remain
   untouched.
 - Verify keyboard focus and text contrast at 100% and 200% zoom.

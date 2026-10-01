@@ -158,6 +158,8 @@ export function generateNativeThemeCss(
     rules.push(`${scopedSelectors("footer")} { display: none !important; }`);
   }
   rules.push(
+    "html.sc-native-customized .sc-native-auto-contrast { color: var(--sc-native-auto-fg) !important; }",
+    "html.sc-native-customized .sc-native-auto-contrast:focus-visible { outline: 3px solid var(--sc-native-auto-fg) !important; outline-offset: 2px !important; }",
     "@media (prefers-reduced-motion: reduce) { html.sc-native-customized *, html.sc-native-customized *::before, html.sc-native-customized *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }"
   );
   return rules.join("\n");
