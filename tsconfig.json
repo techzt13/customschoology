@@ -17,5 +17,12 @@
     "target": "ES2022",
     "types": ["chrome", "node", "vitest/globals"]
   },
-  "include": ["scripts/**/*.mjs", "src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
+  "include": [
+    "browser-test/**/*.ts",
+    "playwright.config.ts",
+    "scripts/**/*.mjs",
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "vitest.config.ts"
+  ]
 }
