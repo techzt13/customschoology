@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta name="generator" content="Schoology" />
+    <title>Schoology fixture</title>
+  </head>
+  <body>
+    <header id="header">
+      <a href="/home">Home</a>
+      <nav class="tabs" style="background: rgb(248, 249, 251)">
+        <a id="recent-tab" role="tab" style="color: white">Recent Activity</a>
+        <a id="dashboard-tab" role="tab" style="color: white">Course Dashboard</a>
+      </nav>
+    </header>
+    <div id="body">
+      <aside id="left-column">Courses</aside>
+      <main id="main">
+        <section data-testid="upcoming-assignments">
+          <article data-status="submitted">
+            <a href="https://example.schoology.com/assignment/101?section_id=42">Reflection</a>
+            <span class="course-name">Biology</span>
+            <time datetime="2026-10-04T02:00:00Z">October 4</time>
+          </article>
+        </section>
+        <section class="course-dashboard">
+          <article
+            class="course-card"
+            style="display: grid; order: 7; border-inline-start: 2px solid red"
+          >
+            <a href="https://example.schoology.com/courses/42">Biology</a>
+          </article>
+        </section>
+        <ul class="materials-list">
+          <li>
+            <a href="https://example.schoology.com/assignment/101?section_id=42">Reflection</a>
+          </li>
+        </ul>
+      </main>
+      <aside id="right-column">Upcoming</aside>
+    </div>
+  </body>
+</html>
