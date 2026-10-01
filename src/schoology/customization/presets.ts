@@ -819,6 +819,9 @@ export function applyNativePreset(
     ...current,
     ...structuredClone(value),
     contrastMode: "automatic",
+    hideFooter: false,
+    hideLeftRail: false,
+    hideRightRail: false,
     presetId: id
   };
 }

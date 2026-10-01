@@ -32,9 +32,14 @@ elsewhere.
 
 Native customization adds extension-owned region/role annotations, a root class, and a generated
 scoped stylesheet to recognized Schoology shell regions. It does not rewrite Schoology content or
-store page HTML. A local compatibility report stores only region names/counts, preservation
-categories, and a timestamp so settings can explain what was themed; it stores no page text, URLs,
+store page HTML. Safe color rules and structural rules are separate; a local geometry check can
+remove only structural rules when a critical native region becomes unsafe. A local compatibility
+report stores only region names/counts, preservation categories, a generic layout warning, and a
+timestamp so settings can explain what was themed; it stores no page text, URLs, element geometry,
 student data, or institution identifiers.
+
+The project includes no SchoologyPlus telemetry or analytics. Its limited MIT-licensed compatibility
+references are identified in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 In Automatic WCAG AA mode, the extension may inspect computed foreground and background colors
 inside positively identified regions. Corrections can select only configured semantic colors or

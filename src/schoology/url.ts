@@ -1,4 +1,5 @@
 import type { PageCapabilities } from "../shared/models";
+import { schoologyRoute } from "./routes";
 
 const SCHOOLOGY_HOST = /(^|\.)schoology\.com$/i;
 
@@ -11,13 +12,11 @@ export function isLikelySchoology(document: Document, location: Location): boole
 }
 
 export function classifyPage(pathname: string): PageCapabilities["pageKind"] {
-  if (/\/grades(?:\/|$)/i.test(pathname)) return "grades";
-  if (/\/materials(?:\/|$)/i.test(pathname)) return "materials";
-  if (/\/course(?:s)?\//i.test(pathname)) return "course";
-  if (/\/(?:home|recent-activity|upcoming)(?:\/|$)/i.test(pathname) || pathname === "/") {
-    return "home";
-  }
-  return "unknown";
+  const route = schoologyRoute(pathname);
+  if (route === "grades") return "grades";
+  if (route === "materials" || route === "material") return "materials";
+  if (route === "course" || route === "courses") return "course";
+  return route === "home" ? "home" : "unknown";
 }
 
 export function originPattern(hostname: string): string {

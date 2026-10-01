@@ -9,6 +9,9 @@ screenshots, fixtures, bug reports, or repository files.
 - One Schoology-hosted deployment and one custom-domain deployment.
 - Examples of unsubmitted, submitted, late, missing, no-due-date, and empty upcoming states.
 - Narrow laptop and 200% browser zoom screenshots.
+- A sanitized home-shell DOM fragment containing `#main-content-wrapper`, `#center`, `#center-top`,
+  `#main-inner`, `#right-column`, and `#right-column-inner`, including the computed
+  display/grid/flex styles on their direct parents.
 - Path/query shapes with tenant and identifiers replaced.
 
 ## Installation and permission
@@ -48,6 +51,21 @@ screenshots, fixtures, bug reports, or repository files.
 - Confirm default/reset styling never changes Schoology's root font size, rem-based navigation,
   control dimensions, icon boxes, header height, or native spacing geometry.
 - Toggle each optional visibility control and confirm only the named nonessential region changes.
+- Apply every preset after hiding a region and confirm the left rail, right/To Do rail, footer,
+  dashboard cards, tabs, and native header controls all return. Confirm the active-hidden indicator
+  clears.
+- Use **Restore all Schoology sections** and confirm it restores all three optional regions without
+  resetting colors or other layout choices.
+- On `/`, `/home`, `/home/recent-activity`, and `/home/course-dashboard`, confirm the center column
+  and separate To Do rail retain Schoology's native relationship. At a wide viewport the rail must
+  remain rendered and onscreen, the center must remain usable, cards must stay within the center,
+  and no content-width rule may create a large empty gap after the rail.
+- At narrow width and actual 200% Chrome zoom, confirm the native responsive stacking/reflow remains
+  usable and the right rail is still reachable. Repository Chromium coverage uses a half-width
+  reflow equivalent; actual browser zoom remains a required manual check.
+- If the **Compatibility and themed regions** panel reports a layout rollback, confirm colors remain
+  active, every native region is visible and usable, and changing a layout preference safely retries
+  structural styling.
 - Use every per-setting reset and reset-all; confirm Schoology returns immediately to its prior
   native presentation when customization is disabled.
 - Confirm official submitted, late, missing, grade, and alert semantics remain visible and readable.
@@ -60,7 +78,8 @@ screenshots, fixtures, bug reports, or repository files.
   untouched with both their background and foreground native; no isolated purple/custom text should
   appear on an uncontrolled surface.
 - Review **Compatibility and themed regions** and compare its detected, themed, native-preserved,
-  and unsupported lists against the visible page.
+  unsupported, and layout-warning state against the visible page. Review the pinned SchoologyPlus
+  capability matrix without treating Experimental entries as validated parity.
 - Verify keyboard focus and text contrast at 100% and 200% zoom.
 - Export data, reset, import the export, and confirm settings return.
 - Attempt to import malformed and unrelated JSON; confirm existing settings remain intact.

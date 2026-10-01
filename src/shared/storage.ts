@@ -56,13 +56,14 @@ function parseCoursePreferences(value: unknown): Record<string, CoursePreference
     result[key] = {
       accent: preference.accent,
       favorite: preference.favorite === true,
-      hidden: preference.hidden === true,
+      hidden: preference.visibilityControlsVersion === 1 && preference.hidden === true,
       nickname: preference.nickname,
       order:
         typeof preference.order === "number" && Number.isInteger(preference.order)
           ? Math.min(999, Math.max(0, preference.order))
           : 100,
-      quickLinks: safeQuickLinks(preference.quickLinks)
+      quickLinks: safeQuickLinks(preference.quickLinks),
+      visibilityControlsVersion: 1
     };
   }
   return result;
@@ -205,7 +206,7 @@ export function parseSettings(value: unknown): Settings {
     manualCompletions: parseManualCompletions(value.manualCompletions),
     nativeCustomization: sanitizeNativeCustomization(nativeInput),
     panelEnabled: value.panelEnabled !== false,
-    schemaVersion: 5,
+    schemaVersion: 6,
     theme
   };
 }
@@ -272,6 +273,23 @@ export function applyMutation(current: Settings, mutation: SettingsMutation): Se
         ...current,
         nativeCustomization: mutation.customization
       });
+    case "RESTORE_VISIBILITY":
+      return parseSettings({
+        ...current,
+        coursePreferences: Object.fromEntries(
+          Object.entries(current.coursePreferences).map(([id, preference]) => [
+            id,
+            { ...preference, hidden: false, visibilityControlsVersion: 1 }
+          ])
+        ),
+        nativeCustomization: {
+          ...current.nativeCustomization,
+          hideFooter: false,
+          hideLeftRail: false,
+          hideRightRail: false,
+          visibilityControlsVersion: 1
+        }
+      });
     case "REPLACE":
       return parseSettings(mutation.settings);
   }
@@ -294,7 +312,7 @@ export async function exportLocalData(): Promise<string> {
       exportedAt: new Date().toISOString(),
       format: "schoology-companion-settings",
       settings,
-      version: 5
+      version: 6
     },
     null,
     2

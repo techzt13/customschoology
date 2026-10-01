@@ -2,56 +2,228 @@
 <html>
   <head>
     <meta name="generator" content="Schoology" />
-    <title>Schoology fixture</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Schoology home-shell fixture</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-width: 0;
+        background: #f4f6fa;
+        color: #172033;
+        font:
+          16px/1.4 Arial,
+          sans-serif;
+      }
+      #header > header {
+        display: flex;
+        min-height: 64px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 24px;
+        background: #263247;
+        color: white;
+      }
+      #header img {
+        width: 136px;
+        height: 36px;
+        object-fit: contain;
+      }
+      #header a,
+      #header button {
+        color: white;
+      }
+      #body {
+        min-width: 0;
+      }
+      #main-content-wrapper {
+        display: grid;
+        width: calc(100% - 40px);
+        max-width: none;
+        grid-template-columns: minmax(0, 1fr) 292px;
+        gap: 24px;
+        margin: 20px;
+      }
+      #center,
+      #center-inner,
+      #main,
+      #main-inner {
+        min-width: 0;
+      }
+      #center-top {
+        margin-bottom: 16px;
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+        padding: 8px;
+        background: rgb(248, 249, 251);
+      }
+      .tabs a {
+        padding: 10px 14px;
+      }
+      #home-feed-container {
+        margin-bottom: 16px;
+      }
+      .course-dashboard {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .course-card {
+        min-width: 0;
+        min-height: 180px;
+        padding: 16px;
+        border: 1px solid #cad2e0;
+        background: white;
+      }
+      .sgy-card-lens {
+        padding: 12px;
+      }
+      #right-column {
+        width: 292px;
+        min-width: 0;
+      }
+      #right-column-inner > section {
+        margin-bottom: 16px;
+        padding: 16px;
+        border: 1px solid #cad2e0;
+        background: white;
+      }
+      #left-column {
+        display: none;
+      }
+      footer {
+        padding: 20px;
+      }
+      @media (max-width: 760px) {
+        #main-content-wrapper {
+          width: calc(100% - 24px);
+          grid-template-columns: minmax(0, 1fr);
+          margin: 12px;
+        }
+        #right-column {
+          width: 100%;
+        }
+        .course-dashboard {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
   </head>
-  <body>
-    <header id="header" role="banner" aria-label="Institution navigation">
-      <img src="/institution-logo.png" alt="Example Academy" />
-      <nav aria-label="Primary">
-        <a href="/home">Home</a>
-        <button aria-label="Messages">Messages</button>
-      </nav>
-    </header>
-    <nav class="tabs" role="tablist" style="background: rgb(248, 249, 251)">
-      <a id="recent-tab" role="tab" aria-selected="false" style="color: white">Recent Activity</a>
-      <a id="dashboard-tab" role="tab" aria-selected="true" style="color: white"
-        >Course Dashboard</a
-      >
-    </nav>
+  <body class="is-home">
+    <div id="header">
+      <header role="banner" aria-label="Institution navigation">
+        <img src="/institution-logo.png" alt="Example Academy" />
+        <nav aria-label="Primary">
+          <a href="/home">Home</a>
+          <button aria-label="Messages">Messages</button>
+        </nav>
+      </header>
+    </div>
     <div id="body">
       <aside id="left-column" aria-label="Course navigation">Courses</aside>
-      <main id="main">
-        <section data-testid="upcoming-assignments">
-          <article data-status="submitted">
-            <a href="https://example.schoology.com/assignment/101?section_id=42">Reflection</a>
-            <span class="course-name">Biology</span>
-            <time datetime="2026-10-04T02:00:00Z">October 4</time>
-          </article>
-        </section>
-        <section class="course-dashboard">
-          <article
-            class="course-card"
-            style="display: grid; order: 7; border-inline-start: 2px solid red"
-          >
-            <a href="https://example.schoology.com/courses/42">Biology</a>
-            <div class="card-content">Biology · Period 2</div>
-          </article>
-        </section>
-        <ul class="materials-list">
-          <li>
-            <a href="https://example.schoology.com/assignment/101?section_id=42">Reflection</a>
-          </li>
-        </ul>
-      </main>
-      <aside id="right-column" aria-label="To Do">
-        <section class="upcoming-events">
-          <h2>To Do</h2>
-          <a href="/assignment/8">Quiz</a>
-        </section>
-        <section class="reminders-wrapper">
-          <p class="empty-state">No overdue work</p>
-        </section>
-      </aside>
+      <div id="main-content-wrapper">
+        <div id="center">
+          <div id="center-top">
+            <nav class="tabs" role="tablist">
+              <a
+                id="recent-tab"
+                role="tab"
+                aria-selected="false"
+                href="/home/recent-activity"
+                style="color: white"
+              >
+                Recent Activity
+              </a>
+              <a
+                id="dashboard-tab"
+                role="tab"
+                aria-selected="true"
+                href="/home/course-dashboard"
+                style="color: white"
+              >
+                Course Dashboard
+              </a>
+            </nav>
+          </div>
+          <div id="center-inner">
+            <main id="main">
+              <div id="main-inner">
+                <section id="home-feed-container" aria-label="Recent activity feed"></section>
+                <section data-testid="upcoming-assignments">
+                  <article>
+                    <a href="https://example.schoology.com/assignment/101?section_id=42">
+                      Reflection
+                    </a>
+                    <span class="course-name">Biology</span>
+                    <time datetime="2026-10-04T02:00:00Z">October 4</time>
+                    <span
+                      data-status="submitted"
+                      style="color: #006b2d; background: #d7f7e3; padding: 2px 5px"
+                    >
+                      Submitted
+                    </span>
+                  </article>
+                </section>
+                <section class="course-dashboard" aria-label="Course dashboard">
+                  <article
+                    class="sgy-card course-card"
+                    style="display: grid; order: 7; border-inline-start: 2px solid red"
+                  >
+                    <div class="sgy-card-lens course-dashboard__card-context card-content">
+                      <a
+                        class="course-dashboard__card-context-title"
+                        href="https://example.schoology.com/courses/42"
+                      >
+                        Biology
+                      </a>
+                      <p>Biology · Period 2</p>
+                    </div>
+                  </article>
+                  <article class="sgy-card course-card">
+                    <div class="sgy-card-lens course-dashboard__card-context card-content">
+                      <a href="https://example.schoology.com/courses/43">English</a>
+                      <p>English · Period 4</p>
+                    </div>
+                  </article>
+                  <article class="sgy-card course-card">
+                    <div class="sgy-card-lens course-dashboard__card-context card-content">
+                      <a href="https://example.schoology.com/courses/44">History</a>
+                    </div>
+                  </article>
+                  <article class="sgy-card course-card">
+                    <div class="sgy-card-lens course-dashboard__card-context card-content">
+                      <a href="https://example.schoology.com/courses/45">Geometry</a>
+                    </div>
+                  </article>
+                </section>
+                <ul class="materials-list">
+                  <li>
+                    <a href="https://example.schoology.com/assignment/101?section_id=42">
+                      Reflection
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </main>
+          </div>
+        </div>
+        <aside id="right-column" aria-label="To Do">
+          <div id="right-column-inner">
+            <section class="upcoming-events">
+              <h2>To Do</h2>
+              <a href="/assignment/8">Quiz</a>
+            </section>
+            <section class="reminders-wrapper">
+              <p class="empty-state">No overdue work</p>
+            </section>
+          </div>
+        </aside>
+      </div>
     </div>
     <footer role="contentinfo">Institution footer</footer>
   </body>

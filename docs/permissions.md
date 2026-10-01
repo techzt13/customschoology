@@ -13,4 +13,5 @@ notifications, clipboard, web request, or background alarms.
 Native Schoology customization uses the existing content-script access and does not add a
 permission. Styles are generated locally from validated settings and target only extension-owned
 region/role annotations beneath `sc-native-customized`. The compatibility panel reads a local
-region-count report through the existing `storage` permission.
+region-count/layout-safety report through the existing `storage` permission. Runtime layout checks
+do not capture or persist element geometry.

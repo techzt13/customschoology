@@ -595,6 +595,27 @@ a:focus-visible {
   border-color: var(--sc-warning);
 }
 
+.sc-compatibility-table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.sc-compatibility-table th,
+.sc-compatibility-table td {
+  min-width: 9rem;
+  padding: 0.65rem;
+  border: 1px solid var(--sc-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.sc-compatibility-table th {
+  background: var(--sc-bg);
+}
+
 .sc-grade-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(10rem, 1fr));

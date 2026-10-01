@@ -20,6 +20,7 @@ export type SettingsMutation =
   | { entry: FocusPlanEntry | null; id: string; kind: "SET_FOCUS" }
   | { kind: "SET_GRADE_SCENARIOS"; scenarios: GradeScenario[] }
   | { customization: NativeCustomization; kind: "SET_NATIVE" }
+  | { kind: "RESTORE_VISIBILITY" }
   | { kind: "REPLACE"; settings: Settings };
 
 export type RuntimeMessage =
@@ -71,6 +72,8 @@ function isSettingsMutation(value: unknown): value is SettingsMutation {
         typeof value.customization === "object" &&
         value.customization !== null
       );
+    case "RESTORE_VISIBILITY":
+      return true;
     case "SET_FOCUS":
       return (
         "id" in value &&

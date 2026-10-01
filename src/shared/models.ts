@@ -74,17 +74,24 @@ export interface NativeCustomization {
   shadow: NativeShadow;
   tabTreatment: NativeTabTreatment;
   tokens: NativeThemeTokens;
+  visibilityControlsVersion: 1;
 }
 
 export type NativeThemeRegion =
   | "institution-header"
   | "dashboard-tabs"
   | "page-canvas"
+  | "home-shell"
+  | "center-column"
+  | "content-wrapper"
+  | "center-top"
+  | "home-feed"
   | "dashboard-grid"
   | "course-card"
   | "course-card-content"
   | "left-rail"
   | "right-rail"
+  | "right-rail-inner"
   | "surface"
   | "modal"
   | "popover"
@@ -96,6 +103,7 @@ export interface ThemeCompatibilityReport {
   themed: NativeThemeRegion[];
   unsupported: string[];
   updatedAt: string;
+  layoutWarning?: string;
 }
 
 export interface CoursePreference {
@@ -105,6 +113,7 @@ export interface CoursePreference {
   nickname: string;
   order: number;
   quickLinks: Array<{ label: string; url: string }>;
+  visibilityControlsVersion: 1;
 }
 
 export interface FocusPlanEntry {
@@ -134,7 +143,7 @@ export interface Settings {
   manualCompletions: Record<string, true>;
   nativeCustomization: NativeCustomization;
   panelEnabled: boolean;
-  schemaVersion: 5;
+  schemaVersion: 6;
   theme: ThemePreset;
 }
 
@@ -205,9 +214,10 @@ export const DEFAULT_SETTINGS: Settings = {
       primarySurface: "#ffffff",
       primaryText: "#172033",
       rightRail: "#ffffff"
-    }
+    },
+    visibilityControlsVersion: 1
   },
   panelEnabled: true,
-  schemaVersion: 5,
+  schemaVersion: 6,
   theme: "system"
 };

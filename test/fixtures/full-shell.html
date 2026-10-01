@@ -1,44 +1,67 @@
 <!doctype html>
 <html>
-  <body>
-    <header role="banner" aria-label="Institution navigation">
-      <img src="/logo.png" alt="Example Academy" />
-      <nav aria-label="Primary">
-        <a href="/home">Home</a>
-        <button aria-label="Messages">Messages</button>
-      </nav>
-    </header>
+  <body class="is-home">
+    <div id="header">
+      <header role="banner" aria-label="Institution navigation">
+        <img src="/logo.png" alt="Example Academy" />
+        <nav aria-label="Primary">
+          <a href="/home">Home</a>
+          <button aria-label="Messages">Messages</button>
+        </nav>
+      </header>
+    </div>
     <div id="body">
       <aside id="left-column" aria-label="Course navigation">Courses</aside>
-      <main id="main" role="main">
-        <nav class="dashboard-navigation" aria-label="Dashboard views">
-          <div role="tablist">
-            <a role="tab" aria-selected="false" href="/recent">Recent Activity</a>
-            <a role="tab" aria-selected="true" href="/home">Course Dashboard</a>
+      <div id="main-content-wrapper">
+        <div id="center">
+          <div id="center-top">
+            <nav class="dashboard-navigation" aria-label="Dashboard views">
+              <div role="tablist">
+                <a role="tab" aria-selected="false" href="/home/recent-activity">
+                  Recent Activity
+                </a>
+                <a role="tab" aria-selected="true" href="/home/course-dashboard">
+                  Course Dashboard
+                </a>
+              </div>
+            </nav>
           </div>
-        </nav>
-        <section class="course-dashboard" aria-label="Course dashboard">
-          <article class="course-card">
-            <img src="/biology.jpg" alt="" />
-            <div class="card-content">
-              <a href="/courses/42">Biology</a>
-              <p data-status="submitted">Submitted</p>
-            </div>
-          </article>
-          <article>
-            <a href="/courses/43">English</a>
-          </article>
-        </section>
-      </main>
-      <aside aria-label="To Do">
-        <section class="upcoming-events">
-          <h2>To Do</h2>
-          <a href="/assignment/7">Essay</a>
-        </section>
-        <section class="reminders-wrapper">
-          <p class="empty-state">No overdue work</p>
-        </section>
-      </aside>
+          <div id="center-inner">
+            <main id="main" role="main">
+              <div id="main-inner">
+                <section id="home-feed-container" aria-label="Recent activity feed"></section>
+                <section class="course-dashboard" aria-label="Course dashboard">
+                  <article class="sgy-card">
+                    <img src="/biology.jpg" alt="" />
+                    <div class="sgy-card-lens course-dashboard__card-context">
+                      <a class="course-dashboard__card-context-title" href="/courses/42">
+                        Biology
+                      </a>
+                      <p data-status="submitted">Submitted</p>
+                    </div>
+                  </article>
+                  <article class="sgy-card">
+                    <div class="sgy-card-lens course-dashboard__card-context">
+                      <a href="/courses/43">English</a>
+                    </div>
+                  </article>
+                </section>
+              </div>
+            </main>
+          </div>
+        </div>
+        <aside id="right-column" aria-label="To Do">
+          <div id="right-column-inner">
+            <section class="upcoming-events">
+              <h2>To Do</h2>
+              <a href="/assignment/7">Essay</a>
+            </section>
+            <section class="reminders-wrapper">
+              <p class="empty-state">No overdue work</p>
+            </section>
+          </div>
+        </aside>
+      </div>
     </div>
     <div role="dialog" aria-modal="true"><button>Close</button></div>
     <div role="menu"><a href="/profile">Profile</a></div>

@@ -73,6 +73,36 @@ describe("normalizeDomain", () => {
       expect(withTheme.manualCompletions).toEqual({ "assignment-1": true });
       expect(withTheme.theme).toBe("contrast");
     });
+
+    it("restores every explicit section and dashboard-card visibility choice atomically", () => {
+      const current = parseSettings({
+        coursePreferences: {
+          "42": {
+            accent: "#123456",
+            favorite: false,
+            hidden: true,
+            nickname: "Biology",
+            order: 1,
+            quickLinks: [],
+            visibilityControlsVersion: 1
+          }
+        },
+        nativeCustomization: {
+          ...DEFAULT_SETTINGS.nativeCustomization,
+          hideFooter: true,
+          hideLeftRail: true,
+          hideRightRail: true
+        }
+      });
+      const restored = applyMutation(current, { kind: "RESTORE_VISIBILITY" });
+
+      expect(restored.nativeCustomization).toMatchObject({
+        hideFooter: false,
+        hideLeftRail: false,
+        hideRightRail: false
+      });
+      expect(restored.coursePreferences["42"]?.hidden).toBe(false);
+    });
   });
 
   describe("settings migrations and imports", () => {
@@ -84,7 +114,7 @@ describe("normalizeDomain", () => {
         theme: "calm"
       });
 
-      expect(migrated.schemaVersion).toBe(5);
+      expect(migrated.schemaVersion).toBe(6);
       expect(migrated.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
       expect(migrated.accent).toBe("#123456");
     });
@@ -157,6 +187,61 @@ describe("normalizeDomain", () => {
       expect(imported.nativeCustomization.cardTreatment).toBe("image-forward");
     });
 
+    it("restores legacy hidden sections unless current-version provenance is explicit", () => {
+      const legacyCustomization: Record<string, unknown> = {
+        ...DEFAULT_SETTINGS.nativeCustomization
+      };
+      delete legacyCustomization.visibilityControlsVersion;
+      const legacy = parseSettings({
+        coursePreferences: {
+          "42": {
+            accent: "#123456",
+            favorite: false,
+            hidden: true,
+            nickname: "Biology",
+            order: 1,
+            quickLinks: []
+          }
+        },
+        nativeCustomization: {
+          ...legacyCustomization,
+          hideFooter: true,
+          hideLeftRail: true,
+          hideRightRail: true
+        },
+        schemaVersion: 5
+      });
+      expect(legacy.nativeCustomization).toMatchObject({
+        hideFooter: false,
+        hideLeftRail: false,
+        hideRightRail: false,
+        visibilityControlsVersion: 1
+      });
+      expect(legacy.coursePreferences["42"]?.hidden).toBe(false);
+
+      const explicit = parseSettings({
+        coursePreferences: {
+          "42": {
+            accent: "#123456",
+            favorite: false,
+            hidden: true,
+            nickname: "Biology",
+            order: 1,
+            quickLinks: [],
+            visibilityControlsVersion: 1
+          }
+        },
+        nativeCustomization: {
+          ...DEFAULT_SETTINGS.nativeCustomization,
+          hideRightRail: true,
+          visibilityControlsVersion: 1
+        },
+        schemaVersion: 6
+      });
+      expect(explicit.nativeCustomization.hideRightRail).toBe(true);
+      expect(explicit.coursePreferences["42"]?.hidden).toBe(true);
+    });
+
     it("exports the migrated schema and native customization", async () => {
       vi.stubGlobal("chrome", {
         storage: {
@@ -175,8 +260,8 @@ describe("normalizeDomain", () => {
         settings: typeof DEFAULT_SETTINGS;
         version: number;
       };
-      expect(exported.version).toBe(5);
-      expect(exported.settings.schemaVersion).toBe(5);
+      expect(exported.version).toBe(6);
+      expect(exported.settings.schemaVersion).toBe(6);
       expect(exported.settings.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
     });
 

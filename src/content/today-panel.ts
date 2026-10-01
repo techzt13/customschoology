@@ -74,7 +74,8 @@ export class TodayPanel {
               hidden: false,
               nickname: courseName,
               order: 100,
-              quickLinks: []
+              quickLinks: [],
+              visibilityControlsVersion: 1
             }
           ])
         ),

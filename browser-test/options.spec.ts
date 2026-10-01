@@ -17,6 +17,7 @@ test("options loads accessibly and supports local grade scenarios", async ({}, t
       await chrome.storage.local.set({
         themeCompatibility: {
           detected: { "institution-header": 1, "right-rail": 1 },
+          layoutWarning: "Layout styling was rolled back: right-rail was hidden or collapsed.",
           nativePreserved: ["Logos and course images"],
           themed: ["institution-header", "right-rail"],
           unsupported: ["Dashboard grid"],
@@ -36,6 +37,10 @@ test("options loads accessibly and supports local grade scenarios", async ({}, t
     await expect(page.getByLabel("Contrast mode")).toHaveValue("automatic");
     await expect(page.getByText("Institution header and primary navigation (1)")).toBeVisible();
     await expect(page.getByText("Logos and course images")).toBeVisible();
+    await expect(page.getByText(/Layout styling was rolled back/)).toBeVisible();
+    await expect(page.getByText("SchoologyPlus compatibility reference")).toBeVisible();
+    await expect(page.getByRole("table")).toContainText("Home shell and To Do rail");
+    await expect(page.getByRole("table")).toContainText("API-key and analytics features");
 
     await page.locator("#native-token-link").fill("#ffffff");
     const linkToken = page.locator(".sc-native-token").filter({ hasText: "Links" });
@@ -58,6 +63,12 @@ test("options loads accessibly and supports local grade scenarios", async ({}, t
     await expect(page.locator("#native-token-link")).toHaveValue("#1d4ed8");
     await expect(page.getByRole("button", { name: "Reset semantic colors" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Reset layout and visibility" })).toBeVisible();
+    await expect(page.getByText("All recognized Schoology sections are visible.")).toBeVisible();
+    await page.getByLabel("Hide right rail when detected").check();
+    await expect(page.getByText(/Hidden Schoology sections: right \/ To Do rail/)).toBeVisible();
+    await page.getByRole("button", { name: "Restore all Schoology sections" }).click();
+    await expect(page.getByLabel("Hide right rail when detected")).not.toBeChecked();
+    await page.getByLabel("Hide right rail when detected").check();
 
     await expect(page.getByRole("radio")).toHaveCount(20);
     await expect(page.locator(".sc-preset-pass")).toHaveCount(20);
@@ -87,6 +98,8 @@ test("options loads accessibly and supports local grade scenarios", async ({}, t
     await page.getByRole("button", { name: "Cancel preview" }).click();
     await page.getByRole("button", { name: "Apply selected preset" }).click();
     await expect(page.getByText("Applied preset: Midnight Study")).toBeVisible();
+    await expect(page.getByLabel("Hide right rail when detected")).not.toBeChecked();
+    await expect(page.getByText("All recognized Schoology sections are visible.")).toBeVisible();
     await page.locator("#native-token-accent").fill("#123456");
     await expect(page.getByText("Applied preset: Midnight Study · Customized")).toBeVisible();
     await page.getByRole("button", { name: "Reset semantic colors" }).click();

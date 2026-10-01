@@ -6,6 +6,7 @@ import {
   detectedThemeRegions,
   discoverThemeRegions,
   REGION_ATTRIBUTE,
+  SCHOOLOGY_SELECTORS,
   THEME_ROLE_ATTRIBUTE
 } from "../src/schoology/customization/selectors";
 import {
@@ -36,11 +37,17 @@ describe("native Schoology semantic discovery", () => {
         "institution-header",
         "dashboard-tabs",
         "page-canvas",
+        "home-shell",
+        "center-column",
+        "content-wrapper",
+        "center-top",
+        "home-feed",
         "dashboard-grid",
         "course-card",
         "course-card-content",
         "left-rail",
         "right-rail",
+        "right-rail-inner",
         "surface",
         "modal",
         "popover",
@@ -50,6 +57,13 @@ describe("native Schoology semantic discovery", () => {
     expect(document.querySelector('header[data-sc-region="institution-header"]')).not.toBeNull();
     expect(
       document.querySelector('[aria-label="To Do"][data-sc-region="right-rail"]')
+    ).not.toBeNull();
+    expect(
+      document.querySelector('#main-content-wrapper[data-sc-region="home-shell"]')
+    ).not.toBeNull();
+    expect(document.querySelector('#center[data-sc-region="center-column"]')).not.toBeNull();
+    expect(
+      document.querySelector('#right-column-inner[data-sc-region="right-rail-inner"]')
     ).not.toBeNull();
     expect(document.querySelector('[role="tab"][data-sc-theme-role="tab-active"]')).not.toBeNull();
     expect(document.querySelector('[data-sc-theme-role="empty"]')).not.toBeNull();
@@ -90,6 +104,8 @@ describe("native semantic theme model", () => {
     expect(sanitized.tokens.primaryText).toBe("#eeeeee");
     expect(sanitized.tokens.link).toBe(DEFAULT_SETTINGS.nativeCustomization.tokens.link);
     expect(sanitized.contrastMode).toBe("automatic");
+    expect(sanitized.hideRightRail).toBe(false);
+    expect(sanitized.visibilityControlsVersion).toBe(1);
   });
 
   it("resolves automatic contrast but preserves requested manual colors with warnings", () => {
@@ -155,8 +171,25 @@ describe("annotation-scoped theme generation", () => {
     expect(css).toContain('[data-sc-region="right-rail"]');
     expect(css).toContain('[data-sc-theme-role="link"]');
     expect(css).not.toContain("#header");
+    expect(css).not.toContain("#main");
     expect(css).not.toContain(".course-card {");
     expect(css).not.toMatch(/(^|[,{]\s*)(body|header|main|aside|a|button)\b/m);
+  });
+
+  it("never constrains a generic body, main, or home-shell parent", () => {
+    const css = generateNativeThemeCss(
+      { ...DEFAULT_SETTINGS.nativeCustomization, contentWidth: "focused" },
+      new Set(["page-canvas", "home-shell", "center-column", "content-wrapper"])
+    );
+
+    expect(SCHOOLOGY_SELECTORS["page-canvas"]).not.toEqual(
+      expect.arrayContaining(["body", "main", "#main"])
+    );
+    expect(css).toContain(
+      '[data-sc-region="content-wrapper"]:not(:has(#right-column)):not(:has(.course-dashboard))'
+    );
+    expect(css).not.toMatch(/(?:body|main|#main)\[data-sc-region="page-canvas"\]/);
+    expect(css).not.toMatch(/\[data-sc-region="home-shell"\][^{]*\{[^}]*max-width/);
   });
 
   it("does not emit a foreground rule for an unknown native region", () => {

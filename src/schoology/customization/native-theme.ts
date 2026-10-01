@@ -147,6 +147,7 @@ export function sanitizeNativeCustomization(value: unknown): NativeCustomization
   const defaults = DEFAULT_SETTINGS.nativeCustomization;
   if (typeof value !== "object" || value === null) return structuredClone(defaults);
   const input = value as Record<string, unknown>;
+  const explicitVisibility = input.visibilityControlsVersion === 1;
   return {
     cardTreatment: choice<NativeCardTreatment>(
       input.cardTreatment,
@@ -168,9 +169,9 @@ export function sanitizeNativeCustomization(value: unknown): NativeCustomization
     density: choice(input.density, ["comfortable", "compact"], defaults.density),
     enabled: input.enabled !== false,
     font: choice(input.font, ["native", "system", "humanist", "rounded", "serif"], defaults.font),
-    hideFooter: input.hideFooter === true,
-    hideLeftRail: input.hideLeftRail === true,
-    hideRightRail: input.hideRightRail === true,
+    hideFooter: explicitVisibility && input.hideFooter === true,
+    hideLeftRail: explicitVisibility && input.hideLeftRail === true,
+    hideRightRail: explicitVisibility && input.hideRightRail === true,
     layoutStyle: choice<NativeLayoutStyle>(
       input.layoutStyle,
       ["minimal-flat", "soft-elevated", "outlined", "glass", "editorial", "dense-productivity"],
@@ -198,7 +199,8 @@ export function sanitizeNativeCustomization(value: unknown): NativeCustomization
       ["underline", "segmented", "pills"],
       defaults.tabTreatment
     ),
-    tokens: sanitizeTokens(input.tokens, input)
+    tokens: sanitizeTokens(input.tokens, input),
+    visibilityControlsVersion: 1
   };
 }
 
@@ -400,6 +402,20 @@ export function generateNativeThemeCss(
     "page-canvas",
     regionRule("page-canvas", tokens.pageBackground, pageText, pageLink, "", false)
   );
+  add("home-shell", regionRule("home-shell", tokens.pageBackground, pageText, pageLink, "", false));
+  add(
+    "center-column",
+    regionRule("center-column", tokens.pageBackground, pageText, pageLink, "", false)
+  );
+  add(
+    "content-wrapper",
+    regionRule("content-wrapper", tokens.primarySurface, surfaceText, surfaceLink, "", false)
+  );
+  add("center-top", regionRule("center-top", tokens.primarySurface, surfaceText, surfaceLink));
+  add(
+    "home-feed",
+    regionRule("home-feed", tokens.primarySurface, surfaceText, surfaceLink, "", false)
+  );
   add(
     "institution-header",
     regionRule("institution-header", tokens.headerBackground, headerText, headerText)
@@ -434,6 +450,7 @@ export function generateNativeThemeCss(
   );
   add("left-rail", regionRule("left-rail", tokens.leftRail, leftText, leftLink));
   add("right-rail", regionRule("right-rail", tokens.rightRail, rightText, rightLink));
+  add("right-rail-inner", regionRule("right-rail-inner", tokens.rightRail, rightText, rightLink));
   add(
     "surface",
     regionRule(
@@ -482,6 +499,7 @@ export function generateNativeThemeCss(
     "html.sc-native-customized .sc-native-auto-contrast { color: var(--sc-native-auto-fg) !important; }"
   );
 
+  rules.push("/* sc-layout-start */");
   const componentRules = [
     'html.sc-native-customized [data-sc-region="institution-header"] { min-height: 3.75rem; padding: calc(0.65rem * var(--sc-native-space)) clamp(0.9rem, 3vw, 2rem) !important; border-bottom: 1px solid var(--sc-native-border) !important; }',
     'html.sc-native-customized [data-sc-region="institution-header"] nav { display: flex; align-items: center; flex-wrap: wrap; gap: calc(0.4rem * var(--sc-native-space)); }',
@@ -491,7 +509,10 @@ export function generateNativeThemeCss(
     'html.sc-native-customized [data-sc-region="dashboard-tabs"] [role="tablist"] { display: flex; flex-wrap: wrap; gap: calc(0.35rem * var(--sc-native-space)); }',
     'html.sc-native-customized [data-sc-theme-role^="tab-"] { display: inline-flex; min-height: 2.65rem; align-items: center; border: 1px solid transparent !important; border-radius: var(--sc-native-radius); padding: 0.55rem 0.85rem !important; text-decoration: none !important; transition: transform var(--sc-native-motion), box-shadow var(--sc-native-motion); }',
     'html.sc-native-customized [data-sc-theme-role="tab-active"] { border-color: var(--sc-native-accent) !important; box-shadow: inset 0 -3px 0 var(--sc-native-accent) !important; font-weight: 800 !important; }',
-    'html.sc-native-customized main[data-sc-region="page-canvas"], html.sc-native-customized #main[data-sc-region="page-canvas"], html.sc-native-customized #main-content[data-sc-region="page-canvas"] { padding: clamp(0.75rem, 2vw, 1.5rem) !important; }',
+    'html.sc-native-customized [data-sc-region="home-shell"], html.sc-native-customized [data-sc-region="center-column"], html.sc-native-customized [data-sc-region="content-wrapper"] { min-width: 0 !important; }',
+    'html.sc-native-customized [data-sc-region="center-column"] { overflow-x: clip; }',
+    'html.sc-native-customized [data-sc-region="right-rail"] { flex-shrink: 0; }',
+    'html.sc-native-customized [data-sc-region="content-wrapper"] { padding: clamp(0.75rem, 2vw, 1.5rem) !important; }',
     'html.sc-native-customized [data-sc-region="dashboard-grid"] { gap: clamp(0.75rem, 2vw, 1.35rem) !important; padding-block: calc(0.5rem * var(--sc-native-space)) !important; }',
     'html.sc-native-customized [data-sc-region="course-card"] { overflow: hidden; min-width: 0; transition: transform var(--sc-native-motion), box-shadow var(--sc-native-motion), outline-color var(--sc-native-motion); }',
     'html.sc-native-customized [data-sc-region="course-card"]:hover { transform: var(--sc-native-lift); box-shadow: var(--sc-native-shadow) !important; }',
@@ -499,8 +520,8 @@ export function generateNativeThemeCss(
     'html.sc-native-customized [data-sc-region="course-card"] > img, html.sc-native-customized [data-sc-region="course-card"] picture img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }',
     'html.sc-native-customized [data-sc-region="course-card-content"] { min-width: 0; padding: calc(0.9rem * var(--sc-native-space)) !important; }',
     'html.sc-native-customized [data-sc-region="course-card-content"] [data-sc-theme-role="link"] { font-weight: 800 !important; line-height: 1.25 !important; }',
-    'html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail"] { padding: calc(0.8rem * var(--sc-native-space)) !important; }',
-    'html.sc-native-customized [data-sc-region="right-rail"] > section, html.sc-native-customized [data-sc-region="left-rail"] > section { margin-block: calc(0.55rem * var(--sc-native-space)); border: 1px solid var(--sc-native-border); border-radius: var(--sc-native-radius); padding: calc(0.8rem * var(--sc-native-space)); }',
+    'html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail-inner"] { padding: calc(0.8rem * var(--sc-native-space)) !important; }',
+    'html.sc-native-customized [data-sc-region="right-rail-inner"] > section, html.sc-native-customized [data-sc-region="right-rail-inner"] > div:not(:empty), html.sc-native-customized [data-sc-region="left-rail"] > section { margin-block: calc(0.55rem * var(--sc-native-space)); border: 1px solid var(--sc-native-border); border-radius: var(--sc-native-radius); padding: calc(0.8rem * var(--sc-native-space)); }',
     'html.sc-native-customized [data-sc-theme-role="control"] { min-height: 2.65rem; padding: 0.55rem 0.8rem !important; transition: transform var(--sc-native-motion), box-shadow var(--sc-native-motion); }',
     'html.sc-native-customized [data-sc-region="modal"] { max-width: min(42rem, calc(100vw - 2rem)); padding: calc(1.25rem * var(--sc-native-space)) !important; }',
     'html.sc-native-customized [data-sc-region="popover"] { padding: calc(0.55rem * var(--sc-native-space)) !important; }',
@@ -529,11 +550,11 @@ export function generateNativeThemeCss(
   }
   if (customization.railTreatment === "flat") {
     rules.push(
-      'html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail"], html.sc-native-customized [data-sc-region="right-rail"] > section, html.sc-native-customized [data-sc-region="left-rail"] > section { border-color: transparent !important; box-shadow: none !important; }'
+      'html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail-inner"], html.sc-native-customized [data-sc-region="right-rail-inner"] > section, html.sc-native-customized [data-sc-region="right-rail-inner"] > div:not(:empty), html.sc-native-customized [data-sc-region="left-rail"] > section { border-color: transparent !important; box-shadow: none !important; }'
     );
   } else if (customization.railTreatment === "outlined") {
     rules.push(
-      'html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail"] { border: 1px solid var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; box-shadow: none !important; }'
+      'html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail-inner"] { border: 1px solid var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; box-shadow: none !important; }'
     );
   }
   if (customization.cardTreatment === "flat") {
@@ -569,7 +590,7 @@ export function generateNativeThemeCss(
   } else if (customization.layoutStyle === "dense-productivity") {
     rules.push(
       'html.sc-native-customized [data-sc-region="dashboard-grid"] { gap: 0.55rem !important; }',
-      'html.sc-native-customized [data-sc-region="course-card-content"], html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail"] { padding: 0.55rem !important; }'
+      'html.sc-native-customized [data-sc-region="course-card-content"], html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail-inner"] { padding: 0.55rem !important; }'
     );
   } else if (customization.layoutStyle === "editorial") {
     rules.push(
@@ -582,9 +603,9 @@ export function generateNativeThemeCss(
     );
   }
   const width = WIDTHS[customization.contentWidth];
-  if (width !== "none" && supported.has("page-canvas")) {
+  if (width !== "none" && supported.has("content-wrapper")) {
     rules.push(
-      `html.sc-native-customized main[data-sc-region="page-canvas"], html.sc-native-customized #main[data-sc-region="page-canvas"], html.sc-native-customized #main-content[data-sc-region="page-canvas"] { width: min(100%, ${width}); max-width: ${width}; margin-inline: auto !important; }`
+      `html.sc-native-customized [data-sc-region="content-wrapper"]:not(:has(#right-column)):not(:has(.course-dashboard)):not(:has([data-sc-region="dashboard-grid"])) { width: min(100%, ${width}); max-width: ${width}; margin-inline: auto !important; }`
     );
   }
   if (customization.hideLeftRail && supported.has("left-rail")) {
@@ -601,7 +622,7 @@ export function generateNativeThemeCss(
     rules.push('html.sc-native-customized [data-sc-region="footer"] { display: none !important; }');
   }
   rules.push(
-    '@media (max-width: 44rem) { html.sc-native-customized main[data-sc-region="page-canvas"], html.sc-native-customized #main[data-sc-region="page-canvas"], html.sc-native-customized #main-content[data-sc-region="page-canvas"] { width: 100%; max-width: 100%; } html.sc-native-customized [data-sc-region="right-rail"], html.sc-native-customized [data-sc-region="left-rail"] { max-width: 100%; } }',
+    '@media (max-width: 44rem) { html.sc-native-customized [data-sc-region="content-wrapper"] { width: 100%; max-width: 100%; } html.sc-native-customized [data-sc-region="right-rail"], html.sc-native-customized [data-sc-region="left-rail"] { max-width: 100%; } }',
     '@media (prefers-reduced-motion: reduce) { html.sc-native-customized [data-sc-region], html.sc-native-customized [data-sc-region] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } html.sc-native-customized [data-sc-region="course-card"]:hover, html.sc-native-customized [data-sc-theme-role="control"]:active { transform: none !important; } }'
   );
   return rules.join("\n");

@@ -75,14 +75,30 @@ describe("native visual presets", () => {
       expect(css).toContain('[data-sc-region="modal"]');
       expect(css).toContain("@media (prefers-reduced-motion: reduce)");
       expect(css).not.toMatch(/font-size\s*:/i);
+      expect(css).not.toMatch(
+        /\[data-sc-region="(?:left-rail|right-rail|footer|dashboard-grid|dashboard-tabs)"\]\s*\{\s*display:\s*none/i
+      );
     }
   });
 
   it("applies a complete snapshot and detects later customization", () => {
-    const applied = applyNativePreset(DEFAULT_SETTINGS.nativeCustomization, "midnight-study");
+    const applied = applyNativePreset(
+      {
+        ...DEFAULT_SETTINGS.nativeCustomization,
+        hideFooter: true,
+        hideLeftRail: true,
+        hideRightRail: true
+      },
+      "midnight-study"
+    );
     expect(applied.presetId).toBe("midnight-study");
     expect(applied.layoutStyle).toBe("soft-elevated");
     expect(applied.tokens.pageBackground).toBe("#0f172a");
+    expect(applied).toMatchObject({
+      hideFooter: false,
+      hideLeftRail: false,
+      hideRightRail: false
+    });
     expect(nativeCustomizationMatchesPreset(applied)).toBe(true);
     expect(
       nativeCustomizationMatchesPreset({

@@ -4,8 +4,10 @@ Schoology Companion is a privacy-first Chrome extension that adds an accessible,
 student workspace to Schoology with a local Today panel, progressive custom-domain access, complete
 native-shell themes, planning tools, and explicit control over local data.
 
-The project is independent and is not affiliated with PowerSchool or Schoology. It is an original
-implementation and does not include SchoologyPlus source or assets.
+The project is independent and is not affiliated with PowerSchool or Schoology. It uses MIT-licensed
+route and Schoology DOM compatibility knowledge from a pinned SchoologyPlus revision; it does not
+use SchoologyPlus branding, assets, analytics, or remote services. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Capability status
 
@@ -34,6 +36,9 @@ validation on both Schoology-hosted and custom-domain deployments.
 - Safe, reversible full-shell styling for positively identified institution headers, dashboard tabs,
   page canvases, dashboard grids, course cards, left/right rails, surfaces, controls,
   modals/popovers, and footers.
+- Route-specific home-shell adapters preserve Schoology's verified center plus right-column
+  structure. Layout rules are isolated from colors and automatically rolled back if a previously
+  visible critical region collapses, moves offscreen, overlaps, or disappears.
 - Sixteen semantic native-page colors with Automatic WCAG AA, Preserve with warnings, complete High
   Contrast, and Manual Advanced modes. Settings show requested/resolved colors and ratios rather
   than silently replacing a choice.
@@ -95,7 +100,9 @@ For an unpacked development build:
 Schoology DOM nodes do not cross the adapter boundary. The native theme adapter centrally annotates
 recognized regions with extension-owned `data-sc-region` and `data-sc-theme-role` attributes.
 Generated CSS targets only those annotations; unknown regions and authored course content remain
-native. Features consume normalized data and fail independently when a capability is unavailable.
+native. Applying a visual preset restores every core Schoology section; visibility is a separate,
+explicit action with active indicators and a one-click recovery control. Features consume normalized
+data and fail independently when a capability is unavailable.
 
 ## Privacy
 
@@ -106,3 +113,6 @@ See [PRIVACY.md](PRIVACY.md). No analytics or remote telemetry are collected.
 Synthetic fixtures are included, but adapter acceptance requires anonymized HTML fragments from a
 Schoology-hosted deployment and a custom-domain deployment. See
 [docs/manual-testing.md](docs/manual-testing.md).
+
+The pinned SchoologyPlus comparison and current evidence-based coverage are documented in
+[docs/compatibility.md](docs/compatibility.md).

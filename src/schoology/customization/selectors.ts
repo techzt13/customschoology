@@ -1,6 +1,7 @@
 import type { NativeThemeRegion, ThemeCompatibilityReport } from "../../shared/models";
+import { isHomeRoute } from "../routes";
 
-export const SELECTOR_CONTRACT_VERSION = 2;
+export const SELECTOR_CONTRACT_VERSION = 3;
 export const REGION_ATTRIBUTE = "data-sc-region";
 export const THEME_ROLE_ATTRIBUTE = "data-sc-theme-role";
 
@@ -8,14 +9,20 @@ const STATUS_OR_AUTHORED_CONTENT =
   "[class*='status' i], [class*='grade' i], [data-status], [data-grade], [aria-label*='status' i], [aria-label*='grade' i], [data-sc-preserve], .submission-status, .grade-item, .user-generated-content, .material-content, [contenteditable='true'], iframe";
 
 export const REGION_LABELS: Record<NativeThemeRegion, string> = {
+  "center-column": "Center content column",
+  "center-top": "Center header surface",
+  "content-wrapper": "Content wrapper",
   "institution-header": "Institution header and primary navigation",
   "dashboard-tabs": "Recent Activity and Course Dashboard tabs",
   "page-canvas": "Page canvas",
+  "home-feed": "Recent Activity feed",
+  "home-shell": "Home shell",
   "dashboard-grid": "Dashboard grid",
   "course-card": "Course cards",
   "course-card-content": "Course card text areas",
   "left-rail": "Left rail",
   "right-rail": "Right To Do and upcoming rail",
+  "right-rail-inner": "Right To Do and upcoming rail sections",
   surface: "Common content surfaces",
   modal: "Modal dialogs",
   popover: "Menus and popovers",
@@ -24,15 +31,21 @@ export const REGION_LABELS: Record<NativeThemeRegion, string> = {
 
 const REGION_PRIORITY: Record<NativeThemeRegion, number> = {
   "institution-header": 100,
+  "center-top": 95,
   "dashboard-tabs": 90,
   "course-card-content": 85,
   "course-card": 80,
+  "right-rail-inner": 78,
   "right-rail": 75,
   "left-rail": 75,
   modal: 70,
   popover: 70,
   footer: 60,
   "dashboard-grid": 65,
+  "home-feed": 62,
+  "center-column": 60,
+  "content-wrapper": 58,
+  "home-shell": 55,
   surface: 50,
   "page-canvas": 10
 };
@@ -41,8 +54,8 @@ type RegionQueries = Partial<Record<NativeThemeRegion, readonly string[]>>;
 
 const DIRECT_REGION_QUERIES: RegionQueries = {
   "institution-header": [
+    "#header > header",
     "header[role='banner']",
-    "#header",
     "[data-testid='header']",
     "[data-testid*='navigation']",
     "body > header"
@@ -53,19 +66,27 @@ const DIRECT_REGION_QUERIES: RegionQueries = {
     "[data-testid*='dashboard-tab']",
     "[data-testid*='activity-tab']"
   ],
-  "page-canvas": ["body", "main[role='main']", "main", "#main", "#main-content"],
+  "page-canvas": ["#body", "[data-testid='page-canvas']"],
+  "home-shell": [],
+  "center-column": [],
+  "content-wrapper": ["#main-inner"],
+  "center-top": [],
+  "home-feed": [],
   "dashboard-grid": [
     "[data-testid*='course-dashboard']",
     ".course-dashboard",
     "[data-testid*='course-grid']"
   ],
   "course-card": [
+    ".course-dashboard .sgy-card",
     "[data-testid*='course-card']",
     ".course-card",
     ".course-dashboard .card",
     ".course-dashboard .course-item"
   ],
   "course-card-content": [
+    ".course-dashboard .sgy-card-lens",
+    ".course-dashboard .course-dashboard__card-context",
     "[data-testid*='course-card'] [data-testid*='content']",
     ".course-card .card-content",
     ".course-card .course-card-content"
@@ -77,16 +98,30 @@ const DIRECT_REGION_QUERIES: RegionQueries = {
     "[aria-label*='to do' i]",
     "[aria-label*='upcoming' i]"
   ],
+  "right-rail-inner": [],
   surface: [
+    "[data-testid='upcoming-assignments']",
     "[data-testid='content-card']",
     ".s-card",
     ".feed",
+    ".materials-list",
     ".upcoming-events",
     ".reminders-wrapper"
   ],
   modal: ["[role='dialog'][aria-modal='true']", "[data-testid*='modal']"],
   popover: ["[role='menu']", "[role='listbox']", "[data-testid*='popover']"],
   footer: ["footer[role='contentinfo']", "#footer", ".site-footer"]
+};
+
+// Home-shell selectors adapted from aopell/SchoologyPlus all.scss/home.ts at the pinned MIT
+// revision listed in THIRD_PARTY_NOTICES.md. Styling and discovery behavior here are independent.
+const HOME_ROUTE_REGION_QUERIES: Partial<Record<NativeThemeRegion, readonly string[]>> = {
+  "home-shell": ["#main-content-wrapper"],
+  "center-column": ["#main-content-wrapper > #center", "#center"],
+  "center-top": ["#center-top"],
+  "home-feed": ["#home-feed-container"],
+  "right-rail": ["#main-content-wrapper > #right-column", "#right-column"],
+  "right-rail-inner": ["#right-column-inner"]
 };
 
 function addRegion(
@@ -211,6 +246,25 @@ export function discoverThemeRegions(document: Document): ThemeCompatibilityRepo
       }
     }
   }
+  if (!document.querySelector("#header > header")) {
+    addRegion(regions, "institution-header", document.querySelector("#header"));
+  }
+  const pathname = document.defaultView?.location.pathname ?? "";
+  const hasProvenHomeShell =
+    isHomeRoute(pathname) ||
+    document.body.classList.contains("is-home") ||
+    document.querySelector(".course-dashboard, #home-feed-container") !== null;
+  if (hasProvenHomeShell) {
+    for (const [region, queries] of Object.entries(HOME_ROUTE_REGION_QUERIES) as Array<
+      [NativeThemeRegion, readonly string[]]
+    >) {
+      for (const selector of queries) {
+        for (const element of document.querySelectorAll(selector)) {
+          addRegion(regions, region, element);
+        }
+      }
+    }
+  }
   discoverStructuralRegions(document, regions);
 
   const detected: Partial<Record<NativeThemeRegion, number>> = {};
@@ -220,13 +274,25 @@ export function discoverThemeRegions(document: Document): ThemeCompatibilityRepo
       const existing = element.getAttribute(REGION_ATTRIBUTE) as NativeThemeRegion | null;
       if (existing && REGION_PRIORITY[existing] > REGION_PRIORITY[region]) continue;
       element.setAttribute(REGION_ATTRIBUTE, region);
-      if (region !== "page-canvas" && region !== "dashboard-grid") annotateThemeRoles(element);
+      if (
+        ![
+          "page-canvas",
+          "home-shell",
+          "center-column",
+          "content-wrapper",
+          "home-feed",
+          "dashboard-grid"
+        ].includes(region)
+      ) {
+        annotateThemeRoles(element);
+      }
     }
   }
   const expected: NativeThemeRegion[] = [
     "institution-header",
     "dashboard-tabs",
     "page-canvas",
+    "center-column",
     "dashboard-grid",
     "course-card",
     "right-rail"

@@ -598,7 +598,10 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     input.type = "checkbox";
     input.checked = current[key];
     input.addEventListener("change", () => {
-      void save({ ...current, [key]: input.checked }, `${label} saved.`);
+      void save(
+        { ...current, [key]: input.checked, visibilityControlsVersion: 1 },
+        `${label} saved.`
+      ).then(render);
     });
     return row(key, label, input);
   };
@@ -630,6 +633,40 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
   const resetLayout = element("button", {
     className: "sc-button-secondary",
     text: "Reset layout and visibility"
+  });
+
+  const hiddenSections = [
+    current.hideLeftRail ? "left rail" : "",
+    current.hideRightRail ? "right / To Do rail" : "",
+    current.hideFooter ? "footer" : "",
+    Object.values(settings.coursePreferences).some(({ hidden }) => hidden)
+      ? "one or more dashboard course cards"
+      : ""
+  ].filter(Boolean);
+  const hiddenIndicator = element("p", {
+    className: hiddenSections.length ? "sc-message sc-compatibility-warning" : "sc-message",
+    text: hiddenSections.length
+      ? `Hidden Schoology sections: ${hiddenSections.join(", ")}. These choices are separate from visual presets.`
+      : "All recognized Schoology sections are visible."
+  });
+  const restoreSections = element("button", {
+    className: "sc-button-primary",
+    text: "Restore all Schoology sections"
+  });
+  restoreSections.type = "button";
+  restoreSections.disabled = hiddenSections.length === 0;
+  restoreSections.addEventListener("click", () => {
+    void mutateSettings({ kind: "RESTORE_VISIBILITY" })
+      .then(() => {
+        announce("All recognized Schoology sections and dashboard cards restored.");
+      })
+      .then(render)
+      .catch((error: unknown) => {
+        announce(
+          error instanceof Error ? error.message : "Could not restore Schoology sections.",
+          true
+        );
+      });
   });
   resetLayout.type = "button";
   resetLayout.addEventListener("click", () => {
@@ -736,6 +773,8 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
       ["subtle", "Subtle"],
       ["expressive", "Expressive"]
     ]),
+    hiddenIndicator,
+    restoreSections,
     visibilityControl("hideLeftRail", "Hide left rail when detected"),
     visibilityControl("hideRightRail", "Hide right rail when detected"),
     visibilityControl("hideFooter", "Hide footer when detected"),
@@ -1011,7 +1050,10 @@ function coursesSection(settings: Settings): HTMLElement {
     hidden.type = "checkbox";
     hidden.checked = preference.hidden;
     hidden.addEventListener("change", () => {
-      void saveCourse({ hidden: hidden.checked }, "Dashboard visibility saved.");
+      void saveCourse(
+        { hidden: hidden.checked, visibilityControlsVersion: 1 },
+        "Dashboard visibility saved."
+      ).then(render);
     });
     hiddenLabel.append(hidden, element("span", { text: "Hide detected dashboard card" }));
 
@@ -1096,6 +1138,14 @@ function domainsSection(
       })
     );
   } else {
+    if (compatibility.layoutWarning) {
+      node.append(
+        element("p", {
+          className: "sc-message sc-compatibility-warning",
+          text: compatibility.layoutWarning
+        })
+      );
+    }
     const grid = element("div", { className: "sc-compatibility-grid" });
     const reportList = (title: string, items: string[], tone = ""): HTMLElement => {
       const card = element("div", { className: `sc-card sc-stack ${tone}`.trim() });
@@ -1132,7 +1182,65 @@ function domainsSection(
     );
   }
 
+  const referenceRows: Array<[string, string, string, string]> = [
+    [
+      "Page routing",
+      "Available",
+      "Pinned home, course, materials, grades, and assessment route adapters",
+      "Explicit route capabilities replace broad pathname guesses"
+    ],
+    [
+      "Home shell and To Do rail",
+      "Experimental",
+      "Verified wrapper/center/right-rail adapters with layout rollback",
+      "Unknown layouts keep native structure and report unsupported regions"
+    ],
+    [
+      "Dashboard cards",
+      "Experimental",
+      "Scoped sgy-card and semantic fallback adapters",
+      "Images and official status semantics remain native"
+    ],
+    [
+      "Visual themes",
+      "Available",
+      "20 local semantic presets with contrast matrices",
+      "No remote assets, fonts, theme marketplace, or telemetry"
+    ],
+    [
+      "Grade planning",
+      "Experimental",
+      "Separate read-only points-based scenario studio",
+      "Never rewrites official grades; unsupported rules are explicit"
+    ],
+    [
+      "API-key and analytics features",
+      "Unsupported",
+      "Intentionally not implemented",
+      "Local-only design avoids credentials and tracking"
+    ]
+  ];
+  const matrix = element("table", { className: "sc-compatibility-table" });
+  const head = element("thead");
+  const headRow = element("tr");
+  for (const heading of ["Referenced capability", "Our status", "Implementation", "Difference"]) {
+    headRow.append(element("th", { text: heading }));
+  }
+  head.append(headRow);
+  const body = element("tbody");
+  for (const row of referenceRows) {
+    const tableRow = element("tr");
+    for (const value of row) tableRow.append(element("td", { text: value }));
+    body.append(tableRow);
+  }
+  matrix.append(head, body);
   node.append(
+    element("h3", { text: "SchoologyPlus compatibility reference" }),
+    element("p", {
+      className: "sc-muted",
+      text: "Compared with MIT-licensed SchoologyPlus at pinned commit 85e2e869. Status is evidence-based and does not imply complete real-site parity."
+    }),
+    matrix,
     element("h3", { text: "Custom-domain access" }),
     element("p", {
       className: "sc-muted",

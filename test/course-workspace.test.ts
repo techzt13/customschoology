@@ -19,7 +19,8 @@ describe("course workspace customization", () => {
       order: 2,
       quickLinks: [
         { label: "Lab notes", url: "https://example.schoology.com/courses/42/materials" }
-      ]
+      ],
+      visibilityControlsVersion: 1
     };
 
     applyCourseWorkspace(settings);
