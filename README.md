@@ -16,7 +16,7 @@ implementation and does not include SchoologyPlus source or assets.
 - System, Calm, High Contrast, and Expressive presets; density, accent, course nickname, and course
   color controls.
 - Safe, reversible native Schoology styling for detected headers, page surfaces, course cards,
-  rails, controls, typography, spacing, width, borders, corners, and shadows.
+  rails, controls, optional system-font families, spacing, width, borders, corners, and shadows.
 - Local export, validated import, reset, permission revocation, and no telemetry.
 
 Grade prediction, API credentials, notifications, background polling, and Firefox packaging are

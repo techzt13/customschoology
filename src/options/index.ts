@@ -205,13 +205,14 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
           ? '"Trebuchet MS", system-ui, sans-serif'
           : current.font === "rounded"
             ? 'ui-rounded, "SF Pro Rounded", system-ui, sans-serif'
-            : "system-ui, sans-serif"
+            : current.font === "system"
+              ? "system-ui, sans-serif"
+              : "inherit"
     );
     preview.style.setProperty(
       "--preview-radius",
       current.corners === "round" ? "18px" : current.corners === "soft" ? "10px" : "4px"
     );
-    preview.style.setProperty("--preview-scale", String(current.fontScale));
     preview.style.setProperty(
       "--preview-shadow",
       current.shadow === "subtle" ? "0 8px 24px rgb(20 28 45 / 12%)" : "none"
@@ -298,16 +299,6 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     return row(key, label, select);
   };
 
-  const scale = element("input");
-  scale.type = "range";
-  scale.min = "0.9";
-  scale.max = "1.2";
-  scale.step = "0.05";
-  scale.value = String(current.fontScale);
-  scale.addEventListener("input", () => {
-    void save({ ...current, fontScale: Number(scale.value) }, "Typography scale saved.");
-  });
-
   const visibilityControl = (
     key: "hideLeftRail" | "hideRightRail" | "hideFooter",
     label: string
@@ -342,12 +333,12 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     colorControl("text", "Text color"),
     colorControl("border", "Border color"),
     selectControl("font", "System font family", [
+      ["native", "Schoology default"],
       ["system", "System"],
       ["humanist", "Humanist"],
       ["rounded", "Rounded"],
       ["serif", "Serif"]
     ]),
-    row("fontScale", "Typography scale", scale),
     selectControl("contentWidth", "Content width", [
       ["default", "Schoology default"],
       ["focused", "Focused"],

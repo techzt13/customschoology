@@ -33,7 +33,9 @@ screenshots, fixtures, bug reports, or repository files.
 
 - Test all presets in light/dark system modes, compact density, and a custom accent.
 - Verify native header, page background, content surfaces, course cards, detected rails, links,
-  buttons, typography, width, borders, corners, spacing, and shadows.
+  buttons, optional font family, width, borders, corners, spacing, and shadows.
+- Confirm default/reset styling never changes Schoology's root font size, rem-based navigation,
+  control dimensions, icon boxes, header height, or native spacing geometry.
 - Toggle each optional visibility control and confirm only the named nonessential region changes.
 - Use every per-setting reset and reset-all; confirm Schoology returns immediately to its prior
   native presentation when customization is disabled.

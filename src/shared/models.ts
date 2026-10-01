@@ -1,6 +1,6 @@
 export type ThemePreset = "system" | "calm" | "contrast" | "expressive";
 export type Density = "comfortable" | "compact";
-export type NativeFont = "system" | "humanist" | "rounded" | "serif";
+export type NativeFont = "native" | "system" | "humanist" | "rounded" | "serif";
 export type NativeContentWidth = "default" | "focused" | "wide";
 export type NativeCorners = "schoology" | "soft" | "round";
 export type NativeShadow = "none" | "subtle";
@@ -12,7 +12,6 @@ export interface NativeCustomization {
   corners: NativeCorners;
   enabled: boolean;
   font: NativeFont;
-  fontScale: number;
   hideFooter: boolean;
   hideLeftRail: boolean;
   hideRightRail: boolean;
@@ -73,8 +72,7 @@ export const DEFAULT_SETTINGS: Settings = {
     contentWidth: "default",
     corners: "soft",
     enabled: true,
-    font: "system",
-    fontScale: 1,
+    font: "native",
     hideFooter: false,
     hideLeftRail: false,
     hideRightRail: false,

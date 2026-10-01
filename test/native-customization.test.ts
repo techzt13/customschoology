@@ -60,7 +60,6 @@ describe("native theme generation", () => {
       corners: "round",
       enabled: true,
       font: "downloaded-font",
-      fontScale: 99,
       hideFooter: true,
       shadow: "subtle",
       surface: "#ffffff",
@@ -70,8 +69,8 @@ describe("native theme generation", () => {
     expect(sanitized.background).toBe(DEFAULT_SETTINGS.nativeCustomization.background);
     expect(sanitized.border).toBe("#112233");
     expect(sanitized.contentWidth).toBe("default");
-    expect(sanitized.font).toBe("system");
-    expect(sanitized.fontScale).toBe(1.2);
+    expect(sanitized.font).toBe("native");
+    expect("fontScale" in sanitized).toBe(false);
     expect(sanitized.hideFooter).toBe(true);
   });
 
@@ -99,6 +98,32 @@ describe("native theme generation", () => {
 
     expect(css).not.toContain("max-width:");
     expect(css).not.toContain("margin-inline:");
+  });
+
+  it("never changes Schoology root font size with default settings", () => {
+    const css = generateNativeThemeCss(
+      DEFAULT_SETTINGS.nativeCustomization,
+      "#5b4ee4",
+      "comfortable",
+      new Set(["header", "content", "courseCards"])
+    );
+
+    expect(css).not.toMatch(/font-size\s*:/i);
+    expect(css).not.toMatch(/html\.sc-native-customized\s*\{[^}]*font-family/);
+    expect(css).not.toContain("font-family:");
+  });
+
+  it("applies an optional font family to body without changing root geometry", () => {
+    const css = generateNativeThemeCss(
+      { ...DEFAULT_SETTINGS.nativeCustomization, font: "humanist" },
+      "#5b4ee4",
+      "comfortable",
+      new Set(["content"])
+    );
+
+    expect(css).toContain("html.sc-native-customized body { font-family:");
+    expect(css).not.toMatch(/font-size\s*:/i);
+    expect(css).not.toMatch(/html\.sc-native-customized\s*\{[^}]*font-family/);
   });
 
   it("excludes links nested in status and grade regions", () => {

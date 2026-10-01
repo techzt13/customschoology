@@ -14,7 +14,7 @@ import {
 } from "./selectors";
 
 const HEX = /^#[0-9a-f]{6}$/i;
-const FONTS: Record<NativeFont, string> = {
+const FONTS: Record<Exclude<NativeFont, "native">, string> = {
   humanist: '"Trebuchet MS", "Segoe UI", system-ui, sans-serif',
   rounded: 'ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif',
   serif: 'Georgia, "Times New Roman", serif',
@@ -45,19 +45,13 @@ export function sanitizeNativeCustomization(value: unknown): NativeCustomization
   const input = value as Record<string, unknown>;
   const color = (key: "background" | "border" | "surface" | "text"): string =>
     typeof input[key] === "string" && HEX.test(input[key]) ? input[key] : defaults[key];
-  const scale =
-    typeof input.fontScale === "number" && Number.isFinite(input.fontScale)
-      ? Math.min(1.2, Math.max(0.9, input.fontScale))
-      : defaults.fontScale;
-
   return {
     background: color("background"),
     border: color("border"),
     contentWidth: choice(input.contentWidth, ["default", "focused", "wide"], defaults.contentWidth),
     corners: choice(input.corners, ["schoology", "soft", "round"], defaults.corners),
     enabled: input.enabled !== false,
-    font: choice(input.font, ["system", "humanist", "rounded", "serif"], defaults.font),
-    fontScale: Math.round(scale * 100) / 100,
+    font: choice(input.font, ["native", "system", "humanist", "rounded", "serif"], defaults.font),
     hideFooter: input.hideFooter === true,
     hideLeftRail: input.hideLeftRail === true,
     hideRightRail: input.hideRightRail === true,
@@ -110,9 +104,14 @@ export function generateNativeThemeCss(
   const shadow = SHADOWS[customization.shadow];
   const spacing = density === "compact" ? "0.72" : "1";
   const rules: string[] = [
-    `html.sc-native-customized { --sc-native-bg: ${customization.background}; --sc-native-surface: ${customization.surface}; --sc-native-body-text: ${bodyText}; --sc-native-surface-text: ${surfaceText}; --sc-native-border: ${customization.border}; --sc-native-accent: ${accent}; --sc-native-body-link: ${bodyLinkText}; --sc-native-surface-link: ${surfaceLinkText}; --sc-native-radius: ${radius}; --sc-native-shadow: ${shadow}; --sc-native-space: ${spacing}; font-size: ${customization.fontScale * 100}%; }`,
-    `html.sc-native-customized body { background: var(--sc-native-bg) !important; color: var(--sc-native-body-text) !important; font-family: ${FONTS[customization.font]} !important; }`
+    `html.sc-native-customized { --sc-native-bg: ${customization.background}; --sc-native-surface: ${customization.surface}; --sc-native-body-text: ${bodyText}; --sc-native-surface-text: ${surfaceText}; --sc-native-border: ${customization.border}; --sc-native-accent: ${accent}; --sc-native-body-link: ${bodyLinkText}; --sc-native-surface-link: ${surfaceLinkText}; --sc-native-radius: ${radius}; --sc-native-shadow: ${shadow}; --sc-native-space: ${spacing}; }`,
+    "html.sc-native-customized body { background: var(--sc-native-bg) !important; color: var(--sc-native-body-text) !important; }"
   ];
+  if (customization.font !== "native") {
+    rules.push(
+      `html.sc-native-customized body { font-family: ${FONTS[customization.font]} !important; }`
+    );
+  }
 
   if (supported.has("header")) {
     rules.push(

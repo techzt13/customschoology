@@ -107,7 +107,7 @@ describe("normalizeDomain", () => {
       expect(imported.nativeCustomization.background).toBe(
         DEFAULT_SETTINGS.nativeCustomization.background
       );
-      expect(imported.nativeCustomization.fontScale).toBe(0.9);
+      expect("fontScale" in imported.nativeCustomization).toBe(false);
     });
 
     it("exports the migrated schema and native customization", async () => {

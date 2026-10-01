@@ -298,7 +298,6 @@ a:focus-visible {
   background: var(--preview-bg);
   color: var(--preview-text);
   font-family: var(--preview-font);
-  font-size: calc(1rem * var(--preview-scale));
 }
 
 .sc-native-preview-header {
