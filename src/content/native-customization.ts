@@ -1,4 +1,9 @@
 import type { Settings, ThemeCompatibilityReport } from "../shared/models";
+import {
+  generateSchoologyPlusCompatibilityCss,
+  normalizeSchoologyHeaderIcons,
+  restoreSchoologyHeaderIcons
+} from "../schoology/compatibility/schoology-plus-shell";
 import { generateNativeThemeCss } from "../schoology/customization/native-theme";
 import {
   clearThemeRegions,
@@ -49,9 +54,15 @@ export function applyNativeCustomization(settings: Settings): void {
   }
   const report = discoverThemeRegions(document);
   const baseline = captureNativeLayoutBaseline(document);
-  const [safeCss, layoutCss] = splitThemeCss(
+  const [nativePaintCss, nativeLayoutCss] = splitThemeCss(
     generateNativeThemeCss(settings.nativeCustomization, detectedThemeRegions(document))
   );
+  const compatibilityCss = generateSchoologyPlusCompatibilityCss(
+    settings.nativeCustomization,
+    location.pathname
+  );
+  const safeCss = `${nativePaintCss}\n${compatibilityCss.paintCss}`;
+  const layoutCss = `${nativeLayoutCss}\n${compatibilityCss.layoutCss}`;
   document.documentElement.classList.add("sc-native-customized");
   document.documentElement.dataset.scSelectorContract = String(SELECTOR_CONTRACT_VERSION);
   ensureStyle(STYLE_ID).textContent = safeCss;
@@ -83,12 +94,14 @@ export function applyNativeCustomization(settings: Settings): void {
       });
     });
   }
+  normalizeSchoologyHeaderIcons(document);
   contrastAnnotator.update(settings.nativeCustomization);
 }
 
 export function removeNativeCustomization(): void {
   layoutSafetyRun += 1;
   contrastAnnotator.disable();
+  restoreSchoologyHeaderIcons(document);
   clearThemeRegions(document);
   document.documentElement.classList.remove("sc-native-customized");
   document.documentElement.removeAttribute("data-sc-selector-contract");

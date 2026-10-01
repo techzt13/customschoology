@@ -9,6 +9,11 @@ const outdir = resolve(root, "dist");
 await mkdir(outdir, { recursive: true });
 await cp(resolve(root, "public"), outdir, { recursive: true });
 await cp(resolve(root, "THIRD_PARTY_NOTICES.md"), resolve(outdir, "THIRD_PARTY_NOTICES.md"));
+await mkdir(resolve(outdir, "docs"), { recursive: true });
+await cp(
+  resolve(root, "docs/upstream-source-map.md"),
+  resolve(outdir, "docs/upstream-source-map.md")
+);
 
 const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 const manifestPath = resolve(outdir, "manifest.json");

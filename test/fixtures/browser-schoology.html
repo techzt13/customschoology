@@ -20,12 +20,28 @@
       }
       #header > header {
         display: flex;
-        min-height: 64px;
+        height: 64px;
         align-items: center;
         justify-content: space-between;
-        padding: 8px 24px;
+        padding: 0 24px;
         background: #263247;
         color: white;
+      }
+      #header nav,
+      #header nav ul {
+        display: flex;
+        height: 100%;
+        align-items: stretch;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      #header nav {
+        flex: 1;
+        justify-content: space-between;
+      }
+      #header nav li {
+        display: flex;
       }
       #header img {
         width: 136px;
@@ -35,6 +51,24 @@
       #header a,
       #header button {
         color: white;
+      }
+      #header .native-header-control {
+        display: inline-flex;
+        width: auto;
+        min-width: 72px;
+        height: 64px;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 14px;
+        border: 0;
+        background: white;
+        color: white;
+        text-decoration: none;
+      }
+      #header .native-header-control svg {
+        width: 20px;
+        height: 20px;
       }
       #body {
         min-width: 0;
@@ -100,6 +134,13 @@
         padding: 20px;
       }
       @media (max-width: 760px) {
+        #header > header {
+          padding-inline: 12px;
+        }
+        #header nav ul:first-child li:nth-child(n + 2),
+        #header nav ul:last-child li:nth-child(2) {
+          display: none;
+        }
         #main-content-wrapper {
           width: calc(100% - 24px);
           grid-template-columns: minmax(0, 1fr);
@@ -119,11 +160,71 @@
       <header role="banner" aria-label="Institution navigation">
         <img src="/institution-logo.png" alt="Example Academy" />
         <nav aria-label="Primary">
-          <a href="/home">Home</a>
-          <button aria-label="Messages">Messages</button>
+          <ul>
+            <li>
+              <a
+                class="_1Z0RM _1wP6w Header-header-button-1EE8Y native-header-control"
+                href="/home"
+              >
+                Home
+              </a>
+            </li>
+            <li>
+              <button
+                class="_1Z0RM _1wP6w Header-header-button-1EE8Y native-header-control"
+                aria-label="Courses"
+              >
+                Courses
+              </button>
+            </li>
+            <li>
+              <button
+                class="_1Z0RM _1wP6w Header-header-button-1EE8Y native-header-control"
+                aria-label="Groups"
+              >
+                Groups
+              </button>
+            </li>
+          </ul>
+          <ul>
+            <li>
+              <button
+                class="_1Z0RM _1wP6w Header-header-button-1EE8Y native-header-control"
+                aria-label="Search"
+              >
+                <svg aria-hidden="true"><use href="#header-search-icon"></use></svg>
+                Search
+              </button>
+            </li>
+            <li>
+              <button
+                class="_1Z0RM _1wP6w Header-header-button-1EE8Y native-header-control"
+                aria-label="Messages"
+              >
+                Messages
+              </button>
+            </li>
+            <li>
+              <button
+                class="_1Z0RM _1wP6w Header-header-button-1EE8Y native-header-control"
+                aria-label="Profile"
+                aria-expanded="false"
+              >
+                Profile
+              </button>
+              <div class="HeaderDropMenu-menu-border-3vo5S" role="menu" hidden>
+                <a class="Header-header-drop-menu-item-3d3IZ" href="/profile">Profile settings</a>
+              </div>
+            </li>
+          </ul>
         </nav>
       </header>
     </div>
+    <svg aria-hidden="true" width="0" height="0">
+      <symbol id="header-search-icon" viewBox="0 0 20 20">
+        <path fill="#333" d="M8 2a6 6 0 1 0 3.7 10.7L17 18l1-1-5.3-5.3A6 6 0 0 0 8 2Z" />
+      </symbol>
+    </svg>
     <div id="body">
       <aside id="left-column" aria-label="Course navigation">Courses</aside>
       <div id="main-content-wrapper">

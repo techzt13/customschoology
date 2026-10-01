@@ -4,10 +4,11 @@ Schoology Companion is a privacy-first Chrome extension that adds an accessible,
 student workspace to Schoology with a local Today panel, progressive custom-domain access, complete
 native-shell themes, planning tools, and explicit control over local data.
 
-The project is independent and is not affiliated with PowerSchool or Schoology. It uses MIT-licensed
-route and Schoology DOM compatibility knowledge from a pinned SchoologyPlus revision; it does not
-use SchoologyPlus branding, assets, analytics, or remote services. See
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The project is independent and is not affiliated with PowerSchool or Schoology. It adapts bounded,
+MIT-licensed route, header, home-shell, card, and SVG compatibility slices from a pinned
+SchoologyPlus revision; it does not use SchoologyPlus branding, assets, analytics, credentials, or
+remote services. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the
+[upstream source map](docs/upstream-source-map.md).
 
 ## Capability status
 

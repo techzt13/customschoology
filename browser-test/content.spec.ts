@@ -75,6 +75,88 @@ test("content script preserves native geometry and enhances supported workflows"
       "tab-active"
     );
     await expect(page.locator("#header > header")).toHaveCSS("background-color", "rgb(38, 50, 71)");
+    for (const label of ["Home", "Courses", "Groups", "Search", "Messages", "Profile"]) {
+      await expect(
+        page.getByRole(/Home/.test(label) ? "link" : "button", { name: label })
+      ).toBeVisible();
+    }
+    await page.getByRole("link", { name: "Home" }).focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Search" })).toBeFocused();
+    await expect(page.getByRole("button", { name: "Search" })).toHaveCSS("outline-style", "solid");
+    await page.getByRole("button", { name: "Courses" }).hover();
+    await expect(page.getByRole("button", { name: "Courses" })).not.toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)"
+    );
+    await page.getByRole("button", { name: "Profile" }).evaluate((button) => {
+      button.setAttribute("aria-expanded", "true");
+      button.parentElement?.querySelector("[role='menu']")?.removeAttribute("hidden");
+    });
+    await expect(page.getByRole("menu")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Profile settings" })).toBeVisible();
+    const headerState = await page.evaluate(() => {
+      const rgb = (value: string): number[] =>
+        value
+          .match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number);
+      const luminance = (value: string): number => {
+        const channels = rgb(value).map((channel) => {
+          const normalized = channel / 255;
+          return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+      };
+      const ratio = (foreground: string, background: string): number => {
+        const values = [luminance(foreground), luminance(background)].sort(
+          (left, right) => right - left
+        );
+        return (values[0]! + 0.05) / (values[1]! + 0.05);
+      };
+      const controls = [
+        ...document.querySelectorAll<HTMLElement>("#header .native-header-control")
+      ];
+      const header = document.querySelector<HTMLElement>("#header > header")!;
+      const menu = document.querySelector<HTMLElement>("#header [role='menu']")!;
+      const menuStyle = getComputedStyle(menu);
+      const menuLink = menu.querySelector<HTMLElement>("a")!;
+      const menuLinkStyle = getComputedStyle(menuLink);
+      return {
+        controls: controls.map((control) => {
+          const style = getComputedStyle(control);
+          const rect = control.getBoundingClientRect();
+          return {
+            background: style.backgroundColor,
+            height: rect.height,
+            ratio: ratio(style.color, style.backgroundColor),
+            text: control.textContent?.trim(),
+            width: rect.width
+          };
+        }),
+        headerHeight: header.getBoundingClientRect().height,
+        iconFill: document.querySelector("#header-search-icon path")?.getAttribute("fill"),
+        menuLinkRatio: ratio(menuLinkStyle.color, menuStyle.backgroundColor),
+        menuRatio: ratio(menuStyle.color, menuStyle.backgroundColor)
+      };
+    });
+    expect(headerState.headerHeight).toBe(64);
+    expect(headerState.iconFill).toBe("currentColor");
+    expect(headerState.menuLinkRatio).toBeGreaterThanOrEqual(4.5);
+    expect(headerState.menuRatio).toBeGreaterThanOrEqual(4.5);
+    expect(headerState.controls).toHaveLength(6);
+    for (const control of headerState.controls) {
+      expect(control.background).not.toBe("rgb(255, 255, 255)");
+      expect(control.height).toBe(64);
+      expect(control.width).toBeLessThan(150);
+      expect(control.ratio, control.text).toBeGreaterThanOrEqual(4.5);
+    }
+    await page.getByRole("button", { name: "Profile" }).evaluate((button) => {
+      button.setAttribute("aria-expanded", "false");
+      button.parentElement?.querySelector("[role='menu']")?.setAttribute("hidden", "");
+    });
     await expect(page.locator("#body")).toHaveCSS("background-color", "rgb(244, 246, 250)");
     await expect(page.locator("#header img")).not.toHaveAttribute("data-sc-theme-role");
     await expect(page.locator("[data-status='submitted']")).toHaveCSS("color", "rgb(0, 107, 45)");
@@ -285,6 +367,7 @@ test("content script preserves native geometry and enhances supported workflows"
     await expect(page.locator("#schoology-companion-native-theme")).toHaveCount(0);
     await expect(page.locator("#schoology-companion-native-layout")).toHaveCount(0);
     await expect(page.locator("#right-column")).toBeVisible();
+    await expect(page.locator("#header-search-icon path")).toHaveAttribute("fill", "#333");
 
     await page.goto("https://example.schoology.com/assessment/9");
     await page.locator("#assessment-form").evaluate((form) => {

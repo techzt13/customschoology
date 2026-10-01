@@ -501,10 +501,8 @@ export function generateNativeThemeCss(
 
   rules.push("/* sc-layout-start */");
   const componentRules = [
-    'html.sc-native-customized [data-sc-region="institution-header"] { min-height: 3.75rem; padding: calc(0.65rem * var(--sc-native-space)) clamp(0.9rem, 3vw, 2rem) !important; border-bottom: 1px solid var(--sc-native-border) !important; }',
-    'html.sc-native-customized [data-sc-region="institution-header"] nav { display: flex; align-items: center; flex-wrap: wrap; gap: calc(0.4rem * var(--sc-native-space)); }',
-    'html.sc-native-customized [data-sc-region="institution-header"] [data-sc-theme-role="link"], html.sc-native-customized [data-sc-region="institution-header"] [data-sc-theme-role="icon-control"] { display: inline-flex; min-height: 2.5rem; align-items: center; border-radius: var(--sc-native-radius); padding: 0.5rem 0.75rem !important; text-decoration: none !important; transition: outline-color var(--sc-native-motion), transform var(--sc-native-motion), box-shadow var(--sc-native-motion); }',
-    'html.sc-native-customized [data-sc-region="institution-header"] [aria-current="page"], html.sc-native-customized [data-sc-region="institution-header"] [aria-selected="true"] { box-shadow: inset 0 -3px 0 var(--sc-native-accent) !important; font-weight: 750 !important; }',
+    'html.sc-native-customized [data-sc-region="institution-header"] [data-sc-theme-role="link"], html.sc-native-customized [data-sc-region="institution-header"] [data-sc-theme-role="icon-control"] { text-decoration: none !important; transition: outline-color var(--sc-native-motion), box-shadow var(--sc-native-motion); }',
+    'html.sc-native-customized [data-sc-region="institution-header"] [aria-current="page"], html.sc-native-customized [data-sc-region="institution-header"] [aria-selected="true"] { box-shadow: inset 0 -3px 0 var(--sc-native-accent) !important; }',
     'html.sc-native-customized [data-sc-region="dashboard-tabs"] { display: flex; align-items: center; gap: calc(0.4rem * var(--sc-native-space)); margin-block: calc(0.75rem * var(--sc-native-space)); padding: calc(0.4rem * var(--sc-native-space)) !important; }',
     'html.sc-native-customized [data-sc-region="dashboard-tabs"] [role="tablist"] { display: flex; flex-wrap: wrap; gap: calc(0.35rem * var(--sc-native-space)); }',
     'html.sc-native-customized [data-sc-theme-role^="tab-"] { display: inline-flex; min-height: 2.65rem; align-items: center; border: 1px solid transparent !important; border-radius: var(--sc-native-radius); padding: 0.55rem 0.85rem !important; text-decoration: none !important; transition: transform var(--sc-native-motion), box-shadow var(--sc-native-motion); }',
@@ -531,7 +529,7 @@ export function generateNativeThemeCss(
 
   if (customization.navigationTreatment === "floating") {
     rules.push(
-      'html.sc-native-customized [data-sc-region="institution-header"] { width: min(96rem, calc(100% - 1rem)); margin: 0.5rem auto !important; border: 1px solid var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; box-shadow: var(--sc-native-shadow) !important; }'
+      'html.sc-native-customized [data-sc-region="institution-header"] { box-shadow: var(--sc-native-shadow) !important; }'
     );
   } else if (customization.navigationTreatment === "minimal") {
     rules.push(

@@ -50,6 +50,11 @@ screenshots, fixtures, bug reports, or repository files.
   reset-all.
 - Confirm default/reset styling never changes Schoology's root font size, rem-based navigation,
   control dimensions, icon boxes, header height, or native spacing geometry.
+- On a deployment using current hashed Schoology header classes, verify Home, Courses, Groups,
+  Search, Messages, and Profile remain visible. Open each native dropdown and confirm its trigger,
+  hover/focus/expanded state, menu surface, labels, and icons use paired readable colors rather than
+  white text on a retained white control. Confirm institution logos and multicolor icon paths are
+  unchanged.
 - Toggle each optional visibility control and confirm only the named nonessential region changes.
 - Apply every preset after hiding a region and confirm the left rail, right/To Do rail, footer,
   dashboard cards, tabs, and native header controls all return. Confirm the active-hidden indicator
@@ -67,7 +72,8 @@ screenshots, fixtures, bug reports, or repository files.
   active, every native region is visible and usable, and changing a layout preference safely retries
   structural styling.
 - Use every per-setting reset and reset-all; confirm Schoology returns immediately to its prior
-  native presentation when customization is disabled.
+  native presentation when customization is disabled, including restoration of original header SVG
+  path fills.
 - Confirm official submitted, late, missing, grade, and alert semantics remain visible and readable.
 - Check active/inactive Recent Activity and Course Dashboard tabs on light and dark nested surfaces;
   normal text must reach 4.5:1 and large/control text 3:1.

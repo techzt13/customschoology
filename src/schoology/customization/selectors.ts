@@ -1,3 +1,13 @@
+/*
+ * Home-shell compatibility selectors include adapted portions of aopell/SchoologyPlus
+ * src/styles/modern/all.scss and src/scripts/pages/home.ts at commit
+ * 85e2e869678570179fba6ba554d5ca0b469ff3ec.
+ *
+ * Copyright (c) 2017-2024 Aaron Opell and Glen Husman
+ * SPDX-License-Identifier: MIT
+ * See THIRD_PARTY_NOTICES.md and docs/upstream-source-map.md.
+ */
+
 import type { NativeThemeRegion, ThemeCompatibilityReport } from "../../shared/models";
 import { isHomeRoute } from "../routes";
 

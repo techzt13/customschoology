@@ -1,6 +1,10 @@
-/**
- * Route patterns adapted from aopell/SchoologyPlus content.ts at
- * 85e2e869678570179fba6ba554d5ca0b469ff3ec (MIT). See THIRD_PARTY_NOTICES.md.
+/*
+ * Route patterns adapted from aopell/SchoologyPlus src/scripts/content.ts at
+ * commit 85e2e869678570179fba6ba554d5ca0b469ff3ec.
+ *
+ * Copyright (c) 2017-2024 Aaron Opell and Glen Husman
+ * SPDX-License-Identifier: MIT
+ * See THIRD_PARTY_NOTICES.md and docs/upstream-source-map.md.
  */
 export type SchoologyRoute =
   | "home"
