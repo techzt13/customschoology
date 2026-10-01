@@ -1,0 +1,42 @@
+# Upstream source map
+
+The live-Schoology compatibility layer uses a deliberately bounded subset of
+[aopell/SchoologyPlus](https://github.com/aopell/SchoologyPlus) pinned at commit
+[`85e2e869678570179fba6ba554d5ca0b469ff3ec`](https://github.com/aopell/SchoologyPlus/commit/85e2e869678570179fba6ba554d5ca0b469ff3ec).
+SchoologyPlus is MIT licensed. The full copyright and permission notice is preserved in
+[`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md). Files containing copied or substantially
+adapted code carry an MIT source header.
+
+The pinned checkout was compared directly. Line ranges below refer to that revision.
+
+## Integrated compatibility slices
+
+| Upstream source                                                                             | Local destination                                     | Use                                                                                                                                                                                       | Local adaptation                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/styles/all.scss:1-112`                                                                 | `src/schoology/compatibility/schoology-plus-shell.ts` | **Adapted:** proven hashed header controls, header buttons, dropdowns, icons, and interaction states                                                                                      | Replaced Sass and upstream theme variables with the extension's resolved semantic tokens; paired foreground and background for every changed control state; omitted branding, logo replacement, asset URLs, header geometry, and unrelated global rules    |
+| `src/styles/modern/all.scss:177-207,879-893,2216-2258`                                      | `src/schoology/compatibility/schoology-plus-shell.ts` | **Adapted:** `#main-content-wrapper`, `#center-top`, `#home-feed-container`, `#right-column`, `#right-column-inner`, `.course-dashboard`, `.sgy-card`, and `.sgy-card-lens` compatibility | Split paint from layout so structural rules can roll back independently; removed shell width constraints, hiding rules, generic body/main layout changes, and image/content recoloring; mapped all paint to the original semantic token and preset systems |
+| `src/scripts/content.ts:17-113`                                                             | `src/schoology/routes.ts`                             | **Adapted:** route dispatch for home, courses, course, materials, grades, assessment, page, and user paths                                                                                | Converted the imperative loader dispatch to a typed, side-effect-free route matcher used by independent feature gates; omitted analytics, messages, popup behavior, and upstream module loading                                                            |
+| `src/scripts/pages/all.ts:526-540`                                                          | `src/schoology/compatibility/schoology-plus-shell.ts` | **Adapted:** SVG `<use>` target lookup and conversion of known `#333` header path fills to `currentColor`                                                                                 | Limited traversal to the proven Schoology header selectors, records each changed fill, restores it exactly on disable, and leaves brand/multicolor fills untouched                                                                                         |
+| `src/styles/modern/all.scss:177-207,879-893` and `src/scripts/pages/home.ts` home selectors | `src/schoology/customization/selectors.ts`            | **Adapted selector knowledge:** independent home-shell, center, tab, dashboard, feed, and right-rail discovery                                                                            | Adds extension-owned region annotations for semantic settings, diagnostics, contrast, and reversible component styling; uses bounded semantic discovery only as a fallback                                                                                 |
+
+No upstream file was copied wholesale. The integrated slices retain selector and behavioral
+knowledge that SchoologyPlus validated against live Schoology, while the settings schema, 20
+presets, contrast engine, discovery diagnostics, layout rollback, UI, student workflows, tests,
+build, and Manifest V3 runtime remain original to this project.
+
+## Evaluated, not integrated
+
+| Upstream source                                                                                                         | Decision                                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/scripts/pages/home.ts` beyond home-shell selector knowledge                                                        | Course ordering, grades display, and upstream DOM mutations were not copied. Existing reversible workspace profiles, ordering, and visibility controls remain independently gated.                                                    |
+| `src/scripts/pages/course.ts`, `courses.ts`, `materials.ts`, `material.ts`, `grades.ts`, `assessment.ts`, and `page.ts` | Reviewed for route and DOM coverage only. Their feature implementations were not needed to repair the two verified shell regressions and were not copied. Existing local-only adapters remain fail-closed pending sanitized real DOM. |
+| Upstream theme/default-theme utilities                                                                                  | Not copied. This project's 16-token contrast model, 20 immutable presets, preset gallery, migrations, and import/export format remain the source of truth.                                                                            |
+| jQuery, Materialize, webpack, manifest, and legacy settings plumbing                                                    | Not copied and not added as dependencies. The project remains strict TypeScript, esbuild, and Manifest V3.                                                                                                                            |
+| Analytics, telemetry, API-key behavior, remote services, branding, and assets                                           | Explicitly excluded. The extension does not add analytics or transmit page/settings data.                                                                                                                                             |
+
+## Maintenance rule
+
+Compatibility changes must stay pinned to the recorded upstream revision until a deliberate review
+updates both the code and this map. New upstream code is not incorporated implicitly. Any future
+copied or substantially derived file must preserve the MIT notice in its source header and be added
+to this document.
