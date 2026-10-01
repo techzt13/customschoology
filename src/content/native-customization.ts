@@ -31,7 +31,6 @@ export function applyNativeCustomization(settings: Settings): void {
   }
   style.textContent = generateNativeThemeCss(
     settings.nativeCustomization,
-    settings.density,
     detectedThemeRegions(document)
   );
   contrastAnnotator.update(settings.nativeCustomization);

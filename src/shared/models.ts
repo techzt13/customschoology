@@ -3,8 +3,37 @@ export type Density = "comfortable" | "compact";
 export type NativeFont = "native" | "system" | "humanist" | "rounded" | "serif";
 export type NativeContentWidth = "default" | "focused" | "wide";
 export type NativeCorners = "schoology" | "soft" | "round";
-export type NativeShadow = "none" | "subtle";
+export type NativeShadow = "none" | "subtle" | "elevated" | "crisp";
 export type NativeContrastMode = "automatic" | "preserve" | "high-contrast" | "manual";
+export type NativeControlStyle = "solid" | "soft" | "outlined" | "compact";
+export type NativeNavigationTreatment = "solid" | "floating" | "minimal";
+export type NativeTabTreatment = "underline" | "segmented" | "pills";
+export type NativeRailTreatment = "flat" | "cards" | "outlined";
+export type NativeCardTreatment = "flat" | "elevated" | "outlined" | "image-forward";
+export type NativeMotionIntensity = "none" | "subtle" | "expressive";
+export type NativeLayoutStyle =
+  "minimal-flat" | "soft-elevated" | "outlined" | "glass" | "editorial" | "dense-productivity";
+export type NativePresetId =
+  | "clear-horizon"
+  | "porcelain-air"
+  | "sandstone-notes"
+  | "arctic-ledger"
+  | "pressroom"
+  | "graphite-line"
+  | "midnight-study"
+  | "deep-current"
+  | "forest-night"
+  | "pure-oled"
+  | "signal-light"
+  | "signal-dark"
+  | "petal-mist"
+  | "mint-canvas"
+  | "electric-berry"
+  | "ocean-atlas"
+  | "evergreen-desk"
+  | "solar-ember"
+  | "lavender-circuit"
+  | "slate-sprint";
 
 export interface NativeThemeTokens {
   accent: string;
@@ -26,15 +55,24 @@ export interface NativeThemeTokens {
 }
 
 export interface NativeCustomization {
+  cardTreatment: NativeCardTreatment;
   contentWidth: NativeContentWidth;
   contrastMode: NativeContrastMode;
+  controlStyle: NativeControlStyle;
   corners: NativeCorners;
+  density: Density;
   enabled: boolean;
   font: NativeFont;
   hideFooter: boolean;
   hideLeftRail: boolean;
   hideRightRail: boolean;
+  layoutStyle: NativeLayoutStyle;
+  motionIntensity: NativeMotionIntensity;
+  navigationTreatment: NativeNavigationTreatment;
+  presetId: NativePresetId;
+  railTreatment: NativeRailTreatment;
   shadow: NativeShadow;
+  tabTreatment: NativeTabTreatment;
   tokens: NativeThemeTokens;
 }
 
@@ -96,7 +134,7 @@ export interface Settings {
   manualCompletions: Record<string, true>;
   nativeCustomization: NativeCustomization;
   panelEnabled: boolean;
-  schemaVersion: 4;
+  schemaVersion: 5;
   theme: ThemePreset;
 }
 
@@ -132,35 +170,44 @@ export const DEFAULT_SETTINGS: Settings = {
   gradeScenarios: [],
   manualCompletions: {},
   nativeCustomization: {
+    cardTreatment: "elevated",
     contentWidth: "default",
     contrastMode: "automatic",
+    controlStyle: "soft",
     corners: "soft",
+    density: "comfortable",
     enabled: true,
-    font: "native",
+    font: "system",
     hideFooter: false,
     hideLeftRail: false,
     hideRightRail: false,
+    layoutStyle: "soft-elevated",
+    motionIntensity: "subtle",
+    navigationTreatment: "solid",
+    presetId: "clear-horizon",
+    railTreatment: "cards",
     shadow: "subtle",
+    tabTreatment: "segmented",
     tokens: {
-      accent: "#5b4ee4",
-      activeTab: "#3327b8",
-      border: "#d8dce6",
+      accent: "#4f46e5",
+      activeTab: "#312e81",
+      border: "#64748b",
       control: "#ffffff",
       elevatedSurface: "#ffffff",
-      focusRing: "#0b6bcb",
-      headerBackground: "#283142",
+      focusRing: "#005fcc",
+      headerBackground: "#263247",
       headerText: "#ffffff",
-      inactiveTab: "#5f687a",
-      leftRail: "#f0f2f7",
-      link: "#4338ca",
-      mutedText: "#5f687a",
-      pageBackground: "#f6f7fb",
+      inactiveTab: "#475569",
+      leftRail: "#eef2f7",
+      link: "#1d4ed8",
+      mutedText: "#4b5563",
+      pageBackground: "#f4f6fa",
       primarySurface: "#ffffff",
-      primaryText: "#1c2230",
+      primaryText: "#172033",
       rightRail: "#ffffff"
     }
   },
   panelEnabled: true,
-  schemaVersion: 4,
+  schemaVersion: 5,
   theme: "system"
 };

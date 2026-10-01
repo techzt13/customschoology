@@ -1,26 +1,31 @@
 # Compatibility matrix
 
-| Surface                                        | Current status       | Evidence                                               |
-| ---------------------------------------------- | -------------------- | ------------------------------------------------------ |
-| Schoology-hosted home/upcoming page            | Synthetic support    | Adapter fixture and unit tests                         |
-| Custom-domain home/upcoming page               | Architecture support | Progressive permission and dynamic script registration |
-| Institution header and icon controls           | Synthetic support    | Semantic discovery and full-shell fixture              |
-| Dashboard tabs, canvas, grid, and course cards | Synthetic support    | Semantic discovery and Chromium workflow test          |
-| Left rail and right To Do/upcoming rail        | Synthetic support    | Structural/label discovery and full-shell fixture      |
-| Content surfaces, controls, modals, popovers   | Synthetic support    | Role/data/structural discovery tests                   |
-| Footer and responsive states                   | Synthetic support    | Annotated CSS and browser test artifact                |
-| Course pages                                   | Detection only       | URL contract tests                                     |
-| Materials pages                                | Detection only       | URL contract tests                                     |
-| Grade pages                                    | Detection only       | URL contract tests                                     |
-| Course dashboard cards                         | Synthetic support    | Reversible workspace fixture tests                     |
-| Materials rows                                 | Synthetic support    | Known-layout adapter tests                             |
-| Assessments                                    | Synthetic support    | Fail-closed supported-control tests                    |
-| Grade scenario studio                          | Manual points only   | Calculation and unsupported-rule tests                 |
-| Firefox                                        | Not supported        | Deferred until Chrome behavior stabilizes              |
+| Surface                                             | Current status             | Evidence                                               |
+| --------------------------------------------------- | -------------------------- | ------------------------------------------------------ |
+| Schoology-hosted home/upcoming page                 | Needs real-site validation | Adapter fixture and unit tests                         |
+| Custom-domain home/upcoming page                    | Needs real-site validation | Progressive permission and dynamic script registration |
+| Institution header and icon controls                | Experimental               | Semantic discovery and full-shell fixture              |
+| Dashboard tabs, canvas, grid, and course cards      | Experimental               | Semantic discovery and Chromium workflow test          |
+| Left rail and right To Do/upcoming rail             | Experimental               | Structural/label discovery and full-shell fixture      |
+| Content surfaces, controls, modals, popovers        | Experimental               | Role/data/structural discovery tests                   |
+| Footer and responsive states                        | Experimental               | Annotated CSS and browser test artifact                |
+| Course pages                                        | Needs real-site validation | URL contract tests                                     |
+| Materials pages                                     | Needs real-site validation | URL contract tests                                     |
+| Grade pages                                         | Needs real-site validation | URL contract tests                                     |
+| Course dashboard cards                              | Experimental               | Reversible workspace fixture tests                     |
+| Materials rows                                      | Experimental               | Known-layout adapter tests                             |
+| Assessments                                         | Experimental               | Fail-closed supported-control tests                    |
+| Grade scenario studio                               | Available                  | Manual total-points calculations                       |
+| Automatic grade import/weighted rule interpretation | Unsupported                | Awaiting verified rules and sanitized fixtures         |
+| Firefox                                             | Unsupported                | Deferred until Chrome behavior stabilizes              |
 
-“Synthetic support” is not a claim of production compatibility. Real adapter acceptance requires
-anonymized DOM fragments and manual validation from at least one Schoology-hosted and one custom
-domain deployment.
+Experimental implementation is not a claim of production compatibility. Real adapter acceptance
+requires anonymized DOM fragments and manual validation from at least one Schoology-hosted and one
+custom-domain deployment.
+
+All 20 bundled visual presets pass the repository's complete semantic contrast matrix without
+runtime substitution. This validates the preset definitions and synthetic states, not the
+institution-specific computed backgrounds or browser behavior that still require real-site testing.
 
 Native customization discovers each semantic shell region independently using roles, labels, link
 destinations, data attributes, and bounded structural relationships. It annotates recognized

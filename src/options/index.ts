@@ -3,6 +3,7 @@ import {
   DEFAULT_SETTINGS,
   type Density,
   type NativeCustomization,
+  type NativePresetId,
   type NativeThemeTokens,
   type Settings,
   type ThemeCompatibilityReport,
@@ -27,6 +28,14 @@ import {
 } from "../schoology/customization/native-theme";
 import { evaluateGradeScenario } from "../domain/grade-planning";
 import type { GradeScenario } from "../shared/models";
+import {
+  applyNativePreset,
+  nativeCustomizationMatchesPreset,
+  NATIVE_THEME_PRESETS,
+  presetContrastMatrix,
+  presetPassesContrast,
+  type PresetCategory
+} from "../schoology/customization/presets";
 
 const appNode = document.querySelector<HTMLElement>("#app");
 if (!appNode) throw new Error("Settings application root is missing.");
@@ -122,12 +131,12 @@ function appearanceSection(settings: Settings): HTMLElement {
   const node = section(
     "appearance",
     "Appearance",
-    "Choose a calm starting point, then adjust density and accent. Contrast protections remain active."
+    "Style extension-owned settings, popup, and Today surfaces. Native Schoology shell presets are configured separately below."
   );
 
   node.append(
     selectField<ThemePreset>(
-      "Visual preset",
+      "Extension controls theme",
       settings.theme,
       [
         ["system", "Follow system"],
@@ -183,9 +192,11 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     "Restyle supported native Schoology regions without replacing or rewriting their content."
   );
   let current = settings.nativeCustomization;
+  let previewCustomization: NativeCustomization | null = null;
 
   const preview = element("div", { className: "sc-native-preview" });
   preview.setAttribute("aria-label", "Live Schoology customization preview");
+  preview.tabIndex = -1;
   const previewHeader = element("div", { className: "sc-native-preview-header" });
   previewHeader.append(
     element("strong", { text: "Institution Schoology" }),
@@ -220,18 +231,24 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
   const contrastNote = element("p", { className: "sc-contrast-summary" });
   contrastNote.setAttribute("role", "status");
   const diagnostics = new Map<keyof NativeThemeTokens, HTMLElement>();
+  let presetState: HTMLElement | null = null;
 
   const updatePreview = (): void => {
-    const tokens = effectiveNativeTokens(current);
+    const active = previewCustomization ?? current;
+    const tokens = effectiveNativeTokens(active);
     const foreground = (requested: string, background: string, threshold = 4.5): string =>
       resolveForeground(
         requested,
         background,
-        current.contrastMode,
+        active.contrastMode,
         [tokens.primaryText, tokens.mutedText, tokens.link, tokens.headerText],
         threshold
       ).resolved;
-    preview.dataset.contrastMode = current.contrastMode;
+    preview.dataset.contrastMode = active.contrastMode;
+    preview.dataset.layout = active.layoutStyle;
+    preview.dataset.tabs = active.tabTreatment;
+    preview.dataset.cards = active.cardTreatment;
+    preview.dataset.rails = active.railTreatment;
     preview.style.setProperty("--preview-bg", tokens.pageBackground);
     preview.style.setProperty("--preview-surface", tokens.primarySurface);
     preview.style.setProperty("--preview-elevated", tokens.elevatedSurface);
@@ -269,29 +286,35 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     );
     preview.style.setProperty(
       "--preview-font",
-      current.font === "serif"
+      active.font === "serif"
         ? "Georgia, serif"
-        : current.font === "humanist"
+        : active.font === "humanist"
           ? '"Trebuchet MS", system-ui, sans-serif'
-          : current.font === "rounded"
+          : active.font === "rounded"
             ? 'ui-rounded, "SF Pro Rounded", system-ui, sans-serif'
-            : current.font === "system"
+            : active.font === "system"
               ? "system-ui, sans-serif"
               : "inherit"
     );
     preview.style.setProperty(
       "--preview-radius",
-      current.corners === "round" ? "18px" : current.corners === "soft" ? "10px" : "4px"
+      active.corners === "round" ? "18px" : active.corners === "soft" ? "10px" : "4px"
     );
     preview.style.setProperty(
       "--preview-shadow",
-      current.shadow === "subtle" ? "0 8px 24px rgb(20 28 45 / 12%)" : "none"
+      active.shadow === "elevated"
+        ? "0 18px 40px rgb(20 28 45 / 18%)"
+        : active.shadow === "subtle"
+          ? "0 8px 24px rgb(20 28 45 / 12%)"
+          : active.shadow === "crisp"
+            ? "3px 3px 0 rgb(20 28 45 / 24%)"
+            : "none"
     );
-    preview.hidden = !current.enabled;
+    preview.hidden = !active.enabled;
     let failures = 0;
     let substitutions = 0;
     for (const [key, output] of diagnostics) {
-      const diagnostic = tokenContrastDiagnostic(current, key);
+      const diagnostic = tokenContrastDiagnostic(active, key);
       if (!diagnostic.meets) failures += 1;
       if (diagnostic.requested !== diagnostic.resolved) substitutions += 1;
       output.dataset.warning = String(!diagnostic.meets);
@@ -302,16 +325,23 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     }
     contrastNote.dataset.warning = String(failures > 0);
     contrastNote.textContent =
-      current.contrastMode === "automatic"
+      active.contrastMode === "automatic"
         ? `${substitutions} color${substitutions === 1 ? "" : "s"} visibly resolved to meet WCAG AA in this preview.`
-        : current.contrastMode === "high-contrast"
+        : active.contrastMode === "high-contrast"
           ? "The complete high-contrast preset is active; saved custom colors are retained for another mode."
           : failures > 0
             ? `${failures} strong contrast warning${failures === 1 ? "" : "s"}. Chosen colors are preserved and may be unreadable.`
             : "All reported semantic combinations meet their WCAG thresholds.";
+    if (!previewCustomization && presetState) {
+      const preset = NATIVE_THEME_PRESETS.find(({ id }) => id === current.presetId)!;
+      presetState.textContent = nativeCustomizationMatchesPreset(current)
+        ? `Applied preset: ${preset.name}`
+        : `Applied preset: ${preset.name} · Customized`;
+    }
   };
 
   const save = (next: NativeCustomization, confirmation: string): Promise<void> => {
+    previewCustomization = null;
     current = next;
     updatePreview();
     return mutateSettings({ customization: next, kind: "SET_NATIVE" })
@@ -321,6 +351,150 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
       .catch((error: unknown) => {
         announce(error instanceof Error ? error.message : "Could not save customization.", true);
       });
+  };
+
+  const presetGallery = (): HTMLElement => {
+    const wrapper = element("div", { className: "sc-preset-gallery sc-stack" });
+    const activePreset = NATIVE_THEME_PRESETS.find(({ id }) => id === current.presetId)!;
+    const state = element("p", {
+      className: "sc-preset-state",
+      text: nativeCustomizationMatchesPreset(current)
+        ? `Applied preset: ${activePreset.name}`
+        : `Applied preset: ${activePreset.name} · Customized`
+    });
+    presetState = state;
+    state.setAttribute("aria-live", "polite");
+
+    const filters = element("div", { className: "sc-preset-filters" });
+    filters.setAttribute("aria-label", "Filter visual presets");
+    const fieldset = element("fieldset", { className: "sc-preset-fieldset" });
+    fieldset.append(element("legend", { className: "sc-visually-hidden", text: "Visual presets" }));
+    const grid = element("div", { className: "sc-preset-grid" });
+    const categories: Array<"All" | PresetCategory> = [
+      "All",
+      "Light",
+      "Dark",
+      "High contrast",
+      "Expressive",
+      "Productivity"
+    ];
+    const filterButtons: HTMLButtonElement[] = [];
+    const cards = new Map<NativePresetId, HTMLElement>();
+    let selected = current.presetId;
+
+    const applyFilter = (category: "All" | PresetCategory): void => {
+      for (const preset of NATIVE_THEME_PRESETS) {
+        const card = cards.get(preset.id);
+        if (card) card.hidden = category !== "All" && !preset.categories.includes(category);
+      }
+      for (const button of filterButtons) {
+        button.setAttribute("aria-pressed", String(button.dataset.category === category));
+      }
+    };
+
+    for (const category of categories) {
+      const button = element("button", { className: "sc-button-secondary", text: category });
+      button.type = "button";
+      button.dataset.category = category;
+      button.setAttribute("aria-pressed", String(category === "All"));
+      button.addEventListener("click", () => applyFilter(category));
+      filterButtons.push(button);
+      filters.append(button);
+    }
+
+    for (const preset of NATIVE_THEME_PRESETS) {
+      const card = element("label", { className: "sc-preset-card" });
+      card.dataset.categories = preset.categories.join(" ");
+      const radio = element("input");
+      radio.type = "radio";
+      radio.name = "native-preset";
+      radio.value = preset.id;
+      radio.checked = preset.id === selected;
+      radio.addEventListener("change", () => {
+        selected = preset.id;
+        state.textContent = `Selected preset: ${preset.name}. Choose Preview or Apply.`;
+      });
+      const miniature = element("span", { className: "sc-preset-miniature" });
+      const tokens = preset.snapshot.tokens;
+      miniature.style.setProperty("--preset-page", tokens.pageBackground);
+      miniature.style.setProperty("--preset-header", tokens.headerBackground);
+      miniature.style.setProperty("--preset-surface", tokens.primarySurface);
+      miniature.style.setProperty("--preset-card", tokens.elevatedSurface);
+      miniature.style.setProperty("--preset-left", tokens.leftRail);
+      miniature.style.setProperty("--preset-right", tokens.rightRail);
+      miniature.style.setProperty("--preset-accent", tokens.accent);
+      miniature.append(
+        element("span", { className: "sc-preset-mini-header" }),
+        element("span", { className: "sc-preset-mini-tabs" }),
+        element("span", { className: "sc-preset-mini-left" }),
+        element("span", { className: "sc-preset-mini-card" }),
+        element("span", { className: "sc-preset-mini-right" })
+      );
+      const matrix = presetContrastMatrix(preset);
+      const minimum = Math.min(...matrix.map(({ ratio }) => ratio));
+      const badge = element("span", {
+        className: "sc-preset-pass",
+        text: presetPassesContrast(preset)
+          ? `AA pass · min ${minimum.toFixed(1)}:1`
+          : "Needs review"
+      });
+      card.append(
+        radio,
+        miniature,
+        element("strong", { text: preset.name }),
+        element("span", { className: "sc-muted", text: preset.description }),
+        badge
+      );
+      cards.set(preset.id, card);
+      grid.append(card);
+    }
+    fieldset.append(grid);
+
+    const actions = element("div", { className: "sc-cluster" });
+    const previewButton = element("button", {
+      className: "sc-button-secondary",
+      text: "Preview without saving"
+    });
+    previewButton.type = "button";
+    previewButton.addEventListener("click", () => {
+      previewCustomization = applyNativePreset(current, selected);
+      updatePreview();
+      state.textContent = `Previewing ${NATIVE_THEME_PRESETS.find(({ id }) => id === selected)!.name}; not saved.`;
+      preview.focus();
+    });
+    const applyButton = element("button", { text: "Apply selected preset" });
+    applyButton.type = "button";
+    applyButton.addEventListener("click", () => {
+      const preset = NATIVE_THEME_PRESETS.find(({ id }) => id === selected)!;
+      void save(applyNativePreset(current, selected), `${preset.name} preset applied.`).then(
+        render
+      );
+    });
+    const cancelButton = element("button", {
+      className: "sc-button-secondary",
+      text: "Cancel preview"
+    });
+    cancelButton.type = "button";
+    cancelButton.addEventListener("click", () => {
+      previewCustomization = null;
+      updatePreview();
+      state.textContent = nativeCustomizationMatchesPreset(current)
+        ? `Applied preset: ${activePreset.name}`
+        : `Applied preset: ${activePreset.name} · Customized`;
+    });
+    actions.append(previewButton, applyButton, cancelButton);
+    wrapper.append(
+      element("h3", { text: "Visual preset gallery" }),
+      element("p", {
+        className: "sc-muted",
+        text: "Each immutable preset is a complete, prevalidated shell design. Arrow keys move between visible radio choices; preview does not save."
+      }),
+      state,
+      filters,
+      fieldset,
+      actions
+    );
+    return wrapper;
   };
 
   const resetButton = <K extends keyof NativeCustomization>(key: K): HTMLButtonElement => {
@@ -383,7 +557,22 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     return wrapper;
   };
 
-  const selectControl = <K extends "contrastMode" | "font" | "contentWidth" | "corners" | "shadow">(
+  const selectControl = <
+    K extends
+      | "cardTreatment"
+      | "contrastMode"
+      | "controlStyle"
+      | "density"
+      | "font"
+      | "contentWidth"
+      | "corners"
+      | "layoutStyle"
+      | "motionIntensity"
+      | "navigationTreatment"
+      | "railTreatment"
+      | "shadow"
+      | "tabTreatment"
+  >(
     key: K,
     label: string,
     values: Array<[NativeCustomization[K], string]>
@@ -448,13 +637,21 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     void save(
       {
         ...current,
+        cardTreatment: defaults.cardTreatment,
         contentWidth: defaults.contentWidth,
+        controlStyle: defaults.controlStyle,
         corners: defaults.corners,
+        density: defaults.density,
         font: defaults.font,
         hideFooter: defaults.hideFooter,
         hideLeftRail: defaults.hideLeftRail,
         hideRightRail: defaults.hideRightRail,
-        shadow: defaults.shadow
+        layoutStyle: defaults.layoutStyle,
+        motionIntensity: defaults.motionIntensity,
+        navigationTreatment: defaults.navigationTreatment,
+        railTreatment: defaults.railTreatment,
+        shadow: defaults.shadow,
+        tabTreatment: defaults.tabTreatment
       },
       "Layout and visibility reset."
     ).then(render);
@@ -468,6 +665,7 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
       ["high-contrast", "High contrast"],
       ["manual", "Manual advanced"]
     ]),
+    presetGallery(),
     preview,
     contrastNote,
     ...(Object.keys(NATIVE_THEME_TOKEN_LABELS) as Array<keyof NativeThemeTokens>).map(colorControl),
@@ -490,7 +688,53 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     ]),
     selectControl("shadow", "Surface shadows", [
       ["none", "None"],
-      ["subtle", "Subtle"]
+      ["subtle", "Subtle"],
+      ["elevated", "Elevated"],
+      ["crisp", "Crisp offset"]
+    ]),
+    selectControl("density", "Native information density", [
+      ["comfortable", "Comfortable"],
+      ["compact", "Compact"]
+    ]),
+    selectControl("layoutStyle", "Layout style", [
+      ["minimal-flat", "Minimal flat"],
+      ["soft-elevated", "Soft elevated"],
+      ["outlined", "Outlined"],
+      ["glass", "Glass-like (no blur)"],
+      ["editorial", "Editorial"],
+      ["dense-productivity", "Dense productivity"]
+    ]),
+    selectControl("navigationTreatment", "Navigation treatment", [
+      ["solid", "Solid"],
+      ["floating", "Floating"],
+      ["minimal", "Minimal"]
+    ]),
+    selectControl("tabTreatment", "Tab treatment", [
+      ["underline", "Underline"],
+      ["segmented", "Segmented"],
+      ["pills", "Pills"]
+    ]),
+    selectControl("railTreatment", "Rail treatment", [
+      ["flat", "Flat"],
+      ["cards", "Section cards"],
+      ["outlined", "Outlined"]
+    ]),
+    selectControl("cardTreatment", "Course card treatment", [
+      ["flat", "Flat"],
+      ["elevated", "Elevated"],
+      ["outlined", "Outlined"],
+      ["image-forward", "Image forward"]
+    ]),
+    selectControl("controlStyle", "Control style", [
+      ["solid", "Solid"],
+      ["soft", "Soft"],
+      ["outlined", "Outlined"],
+      ["compact", "Compact"]
+    ]),
+    selectControl("motionIntensity", "Motion intensity", [
+      ["none", "None"],
+      ["subtle", "Subtle"],
+      ["expressive", "Expressive"]
     ]),
     visibilityControl("hideLeftRail", "Hide left rail when detected"),
     visibilityControl("hideRightRail", "Hide right rail when detected"),
@@ -837,6 +1081,12 @@ function domainsSection(
     "compatibility",
     "Compatibility and themed regions",
     "See exactly what the extension recognized on the most recently visited Schoology page. Unknown regions remain native."
+  );
+  node.append(
+    element("p", {
+      className: "sc-message",
+      text: "Status: Experimental. Automated implementation checks pass; manual real-Schoology sign-off is still needed for institution-specific layouts, 200% zoom, assistive technology, and observer performance."
+    })
   );
   if (!compatibility) {
     node.append(

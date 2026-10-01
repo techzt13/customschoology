@@ -2,10 +2,18 @@ import {
   DEFAULT_SETTINGS,
   type NativeContrastMode,
   type NativeCustomization,
+  type NativeControlStyle,
   type NativeContentWidth,
   type NativeCorners,
   type NativeFont,
+  type NativeLayoutStyle,
+  type NativeMotionIntensity,
+  type NativeNavigationTreatment,
+  type NativePresetId,
+  type NativeRailTreatment,
   type NativeShadow,
+  type NativeTabTreatment,
+  type NativeCardTreatment,
   type NativeThemeRegion,
   type NativeThemeTokens
 } from "../../shared/models";
@@ -28,9 +36,33 @@ const RADII: Record<NativeCorners, string> = {
   soft: "10px"
 };
 const SHADOWS: Record<NativeShadow, string> = {
+  crisp: "3px 3px 0 rgb(20 28 45 / 24%)",
+  elevated: "0 18px 40px rgb(20 28 45 / 18%)",
   none: "none",
   subtle: "0 8px 24px rgb(20 28 45 / 10%)"
 };
+const PRESET_IDS: readonly NativePresetId[] = [
+  "clear-horizon",
+  "porcelain-air",
+  "sandstone-notes",
+  "arctic-ledger",
+  "pressroom",
+  "graphite-line",
+  "midnight-study",
+  "deep-current",
+  "forest-night",
+  "pure-oled",
+  "signal-light",
+  "signal-dark",
+  "petal-mist",
+  "mint-canvas",
+  "electric-berry",
+  "ocean-atlas",
+  "evergreen-desk",
+  "solar-ember",
+  "lavender-circuit",
+  "slate-sprint"
+];
 
 export const NATIVE_THEME_TOKEN_LABELS: Record<keyof NativeThemeTokens, string> = {
   accent: "Accent",
@@ -116,19 +148,56 @@ export function sanitizeNativeCustomization(value: unknown): NativeCustomization
   if (typeof value !== "object" || value === null) return structuredClone(defaults);
   const input = value as Record<string, unknown>;
   return {
+    cardTreatment: choice<NativeCardTreatment>(
+      input.cardTreatment,
+      ["flat", "elevated", "outlined", "image-forward"],
+      defaults.cardTreatment
+    ),
     contentWidth: choice(input.contentWidth, ["default", "focused", "wide"], defaults.contentWidth),
     contrastMode: choice<NativeContrastMode>(
       input.contrastMode,
       ["automatic", "preserve", "high-contrast", "manual"],
       defaults.contrastMode
     ),
+    controlStyle: choice<NativeControlStyle>(
+      input.controlStyle,
+      ["solid", "soft", "outlined", "compact"],
+      defaults.controlStyle
+    ),
     corners: choice(input.corners, ["schoology", "soft", "round"], defaults.corners),
+    density: choice(input.density, ["comfortable", "compact"], defaults.density),
     enabled: input.enabled !== false,
     font: choice(input.font, ["native", "system", "humanist", "rounded", "serif"], defaults.font),
     hideFooter: input.hideFooter === true,
     hideLeftRail: input.hideLeftRail === true,
     hideRightRail: input.hideRightRail === true,
-    shadow: choice(input.shadow, ["none", "subtle"], defaults.shadow),
+    layoutStyle: choice<NativeLayoutStyle>(
+      input.layoutStyle,
+      ["minimal-flat", "soft-elevated", "outlined", "glass", "editorial", "dense-productivity"],
+      defaults.layoutStyle
+    ),
+    motionIntensity: choice<NativeMotionIntensity>(
+      input.motionIntensity,
+      ["none", "subtle", "expressive"],
+      defaults.motionIntensity
+    ),
+    navigationTreatment: choice<NativeNavigationTreatment>(
+      input.navigationTreatment,
+      ["solid", "floating", "minimal"],
+      defaults.navigationTreatment
+    ),
+    presetId: choice(input.presetId, PRESET_IDS, defaults.presetId),
+    railTreatment: choice<NativeRailTreatment>(
+      input.railTreatment,
+      ["flat", "cards", "outlined"],
+      defaults.railTreatment
+    ),
+    shadow: choice(input.shadow, ["none", "subtle", "elevated", "crisp"], defaults.shadow),
+    tabTreatment: choice<NativeTabTreatment>(
+      input.tabTreatment,
+      ["underline", "segmented", "pills"],
+      defaults.tabTreatment
+    ),
     tokens: sanitizeTokens(input.tokens, input)
   };
 }
@@ -280,7 +349,6 @@ function regionRule(
 
 export function generateNativeThemeCss(
   customization: NativeCustomization,
-  density: "comfortable" | "compact",
   supported: ReadonlySet<NativeThemeRegion>
 ): string {
   if (!customization.enabled) return "";
@@ -296,7 +364,19 @@ export function generateNativeThemeCss(
     ).resolved;
   const radius = RADII[customization.corners];
   const shadow = SHADOWS[customization.shadow];
-  const spacing = density === "compact" ? "0.72" : "1";
+  const spacing = customization.density === "compact" ? "0.72" : "1";
+  const motionDuration =
+    customization.motionIntensity === "none"
+      ? "0ms"
+      : customization.motionIntensity === "expressive"
+        ? "220ms"
+        : "140ms";
+  const lift =
+    customization.motionIntensity === "none"
+      ? "none"
+      : customization.motionIntensity === "expressive"
+        ? "translateY(-4px)"
+        : "translateY(-2px)";
   const surfaceText = readable(tokens.primaryText, tokens.primarySurface);
   const surfaceLink = readable(tokens.link, tokens.primarySurface);
   const elevatedText = readable(tokens.primaryText, tokens.elevatedSurface);
@@ -310,7 +390,7 @@ export function generateNativeThemeCss(
   const headerText = readable(tokens.headerText, tokens.headerBackground);
   const controlText = readable(tokens.primaryText, tokens.control);
   const rules: string[] = [
-    `html.sc-native-customized { --sc-native-border: ${tokens.border}; --sc-native-accent: ${tokens.accent}; --sc-native-focus: ${tokens.focusRing}; --sc-native-control: ${tokens.control}; --sc-native-control-text: ${controlText}; --sc-native-radius: ${radius}; --sc-native-shadow: ${shadow}; --sc-native-space: ${spacing}; }`
+    `html.sc-native-customized { --sc-native-border: ${tokens.border}; --sc-native-accent: ${tokens.accent}; --sc-native-focus: ${tokens.focusRing}; --sc-native-control: ${tokens.control}; --sc-native-control-text: ${controlText}; --sc-native-muted: ${readable(tokens.mutedText, tokens.primarySurface)}; --sc-native-radius: ${radius}; --sc-native-shadow: ${shadow}; --sc-native-space: ${spacing}; --sc-native-motion: ${motionDuration}; --sc-native-lift: ${lift}; }`
   ];
 
   const add = (region: NativeThemeRegion, rule: string): void => {
@@ -394,13 +474,108 @@ export function generateNativeThemeCss(
     `html.sc-native-customized [data-sc-theme-role="tab-inactive"] { color: ${readable(tokens.inactiveTab, tokens.primarySurface)} !important; }`,
     'html.sc-native-customized [data-sc-theme-role="control"] { background-color: var(--sc-native-control) !important; color: var(--sc-native-control-text) !important; border-color: var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; }',
     'html.sc-native-customized [data-sc-theme-role="icon-control"] { color: currentColor !important; border-color: transparent !important; }',
-    'html.sc-native-customized [data-sc-theme-role="link"]:hover, html.sc-native-customized [data-sc-theme-role^="tab-"]:hover { text-decoration: underline !important; text-decoration-thickness: 0.12em !important; }',
-    'html.sc-native-customized [data-sc-theme-role="control"]:hover { filter: brightness(0.96); }',
-    'html.sc-native-customized [data-sc-theme-role="control"]:active { filter: brightness(0.9); }',
-    'html.sc-native-customized [data-sc-theme-role="control"]:disabled, html.sc-native-customized [data-sc-theme-role="control"][aria-disabled="true"] { cursor: not-allowed !important; opacity: 0.58 !important; }',
-    "html.sc-native-customized [data-sc-theme-role]:focus-visible { outline: 3px solid var(--sc-native-focus) !important; outline-offset: 2px !important; }",
+    'html.sc-native-customized [data-sc-theme-role="link"]:hover { text-decoration: underline !important; text-decoration-thickness: 0.12em !important; }',
+    'html.sc-native-customized [data-sc-theme-role="control"]:hover { box-shadow: 0 0 0 2px var(--sc-native-border) !important; }',
+    'html.sc-native-customized [data-sc-theme-role="control"]:active { transform: translateY(1px); }',
+    'html.sc-native-customized [data-sc-theme-role="control"]:disabled, html.sc-native-customized [data-sc-theme-role="control"][aria-disabled="true"] { cursor: not-allowed !important; color: var(--sc-native-muted) !important; border-style: dashed !important; }',
+    "html.sc-native-customized [data-sc-theme-role]:focus-visible { outline: 3px solid var(--sc-native-focus) !important; outline-offset: 2px !important; box-shadow: 0 0 0 5px var(--sc-region-text) !important; }",
     "html.sc-native-customized .sc-native-auto-contrast { color: var(--sc-native-auto-fg) !important; }"
   );
+
+  const componentRules = [
+    'html.sc-native-customized [data-sc-region="institution-header"] { min-height: 3.75rem; padding: calc(0.65rem * var(--sc-native-space)) clamp(0.9rem, 3vw, 2rem) !important; border-bottom: 1px solid var(--sc-native-border) !important; }',
+    'html.sc-native-customized [data-sc-region="institution-header"] nav { display: flex; align-items: center; flex-wrap: wrap; gap: calc(0.4rem * var(--sc-native-space)); }',
+    'html.sc-native-customized [data-sc-region="institution-header"] [data-sc-theme-role="link"], html.sc-native-customized [data-sc-region="institution-header"] [data-sc-theme-role="icon-control"] { display: inline-flex; min-height: 2.5rem; align-items: center; border-radius: var(--sc-native-radius); padding: 0.5rem 0.75rem !important; text-decoration: none !important; transition: outline-color var(--sc-native-motion), transform var(--sc-native-motion), box-shadow var(--sc-native-motion); }',
+    'html.sc-native-customized [data-sc-region="institution-header"] [aria-current="page"], html.sc-native-customized [data-sc-region="institution-header"] [aria-selected="true"] { box-shadow: inset 0 -3px 0 var(--sc-native-accent) !important; font-weight: 750 !important; }',
+    'html.sc-native-customized [data-sc-region="dashboard-tabs"] { display: flex; align-items: center; gap: calc(0.4rem * var(--sc-native-space)); margin-block: calc(0.75rem * var(--sc-native-space)); padding: calc(0.4rem * var(--sc-native-space)) !important; }',
+    'html.sc-native-customized [data-sc-region="dashboard-tabs"] [role="tablist"] { display: flex; flex-wrap: wrap; gap: calc(0.35rem * var(--sc-native-space)); }',
+    'html.sc-native-customized [data-sc-theme-role^="tab-"] { display: inline-flex; min-height: 2.65rem; align-items: center; border: 1px solid transparent !important; border-radius: var(--sc-native-radius); padding: 0.55rem 0.85rem !important; text-decoration: none !important; transition: transform var(--sc-native-motion), box-shadow var(--sc-native-motion); }',
+    'html.sc-native-customized [data-sc-theme-role="tab-active"] { border-color: var(--sc-native-accent) !important; box-shadow: inset 0 -3px 0 var(--sc-native-accent) !important; font-weight: 800 !important; }',
+    'html.sc-native-customized main[data-sc-region="page-canvas"], html.sc-native-customized #main[data-sc-region="page-canvas"], html.sc-native-customized #main-content[data-sc-region="page-canvas"] { padding: clamp(0.75rem, 2vw, 1.5rem) !important; }',
+    'html.sc-native-customized [data-sc-region="dashboard-grid"] { gap: clamp(0.75rem, 2vw, 1.35rem) !important; padding-block: calc(0.5rem * var(--sc-native-space)) !important; }',
+    'html.sc-native-customized [data-sc-region="course-card"] { overflow: hidden; min-width: 0; transition: transform var(--sc-native-motion), box-shadow var(--sc-native-motion), outline-color var(--sc-native-motion); }',
+    'html.sc-native-customized [data-sc-region="course-card"]:hover { transform: var(--sc-native-lift); box-shadow: var(--sc-native-shadow) !important; }',
+    'html.sc-native-customized [data-sc-region="course-card"]:focus-within { outline: 3px solid var(--sc-native-focus) !important; outline-offset: 2px !important; }',
+    'html.sc-native-customized [data-sc-region="course-card"] > img, html.sc-native-customized [data-sc-region="course-card"] picture img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }',
+    'html.sc-native-customized [data-sc-region="course-card-content"] { min-width: 0; padding: calc(0.9rem * var(--sc-native-space)) !important; }',
+    'html.sc-native-customized [data-sc-region="course-card-content"] [data-sc-theme-role="link"] { font-weight: 800 !important; line-height: 1.25 !important; }',
+    'html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail"] { padding: calc(0.8rem * var(--sc-native-space)) !important; }',
+    'html.sc-native-customized [data-sc-region="right-rail"] > section, html.sc-native-customized [data-sc-region="left-rail"] > section { margin-block: calc(0.55rem * var(--sc-native-space)); border: 1px solid var(--sc-native-border); border-radius: var(--sc-native-radius); padding: calc(0.8rem * var(--sc-native-space)); }',
+    'html.sc-native-customized [data-sc-theme-role="control"] { min-height: 2.65rem; padding: 0.55rem 0.8rem !important; transition: transform var(--sc-native-motion), box-shadow var(--sc-native-motion); }',
+    'html.sc-native-customized [data-sc-region="modal"] { max-width: min(42rem, calc(100vw - 2rem)); padding: calc(1.25rem * var(--sc-native-space)) !important; }',
+    'html.sc-native-customized [data-sc-region="popover"] { padding: calc(0.55rem * var(--sc-native-space)) !important; }',
+    'html.sc-native-customized [data-sc-theme-role="empty"] { display: grid; min-height: 8rem; place-items: center; border: 1px dashed var(--sc-native-border); border-radius: var(--sc-native-radius); color: var(--sc-region-text) !important; padding: 1.5rem !important; text-align: center; }'
+  ];
+  rules.push(...componentRules);
+
+  if (customization.navigationTreatment === "floating") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="institution-header"] { width: min(96rem, calc(100% - 1rem)); margin: 0.5rem auto !important; border: 1px solid var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; box-shadow: var(--sc-native-shadow) !important; }'
+    );
+  } else if (customization.navigationTreatment === "minimal") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="institution-header"] { box-shadow: none !important; }'
+    );
+  }
+  if (customization.tabTreatment === "underline") {
+    rules.push(
+      'html.sc-native-customized [data-sc-theme-role^="tab-"] { border-width: 0 0 3px !important; border-radius: 0 !important; box-shadow: none !important; }'
+    );
+  } else if (customization.tabTreatment === "pills") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="dashboard-tabs"] { border-radius: calc(var(--sc-native-radius) * 1.5) !important; }',
+      'html.sc-native-customized [data-sc-theme-role="tab-active"] { box-shadow: 0 0 0 2px var(--sc-native-accent) !important; }'
+    );
+  }
+  if (customization.railTreatment === "flat") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail"], html.sc-native-customized [data-sc-region="right-rail"] > section, html.sc-native-customized [data-sc-region="left-rail"] > section { border-color: transparent !important; box-shadow: none !important; }'
+    );
+  } else if (customization.railTreatment === "outlined") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail"] { border: 1px solid var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; box-shadow: none !important; }'
+    );
+  }
+  if (customization.cardTreatment === "flat") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="course-card"] { border-color: transparent !important; box-shadow: none !important; }'
+    );
+  } else if (customization.cardTreatment === "outlined") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="course-card"] { border: 1px solid var(--sc-native-border) !important; box-shadow: none !important; }'
+    );
+  } else if (customization.cardTreatment === "image-forward") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="course-card"] > img, html.sc-native-customized [data-sc-region="course-card"] picture img { aspect-ratio: 3 / 2; }'
+    );
+  }
+  if (customization.controlStyle === "outlined") {
+    rules.push(
+      'html.sc-native-customized [data-sc-theme-role="control"] { border-width: 2px !important; box-shadow: none !important; }'
+    );
+  } else if (customization.controlStyle === "compact") {
+    rules.push(
+      'html.sc-native-customized [data-sc-theme-role="control"] { min-height: 2.2rem; padding: 0.35rem 0.6rem !important; }'
+    );
+  } else if (customization.controlStyle === "solid") {
+    rules.push(
+      'html.sc-native-customized button[data-sc-theme-role="control"], html.sc-native-customized [role="button"][data-sc-theme-role="control"] { border-color: var(--sc-native-accent) !important; }'
+    );
+  }
+  if (customization.layoutStyle === "glass") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="course-card"], html.sc-native-customized [data-sc-region="modal"], html.sc-native-customized [data-sc-region="popover"] { background-color: color-mix(in srgb, var(--sc-region-bg) 92%, transparent) !important; border: 1px solid var(--sc-native-border) !important; }'
+    );
+  } else if (customization.layoutStyle === "dense-productivity") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="dashboard-grid"] { gap: 0.55rem !important; }',
+      'html.sc-native-customized [data-sc-region="course-card-content"], html.sc-native-customized [data-sc-region="left-rail"], html.sc-native-customized [data-sc-region="right-rail"] { padding: 0.55rem !important; }'
+    );
+  } else if (customization.layoutStyle === "editorial") {
+    rules.push(
+      'html.sc-native-customized [data-sc-region="course-card-content"] [data-sc-theme-role="link"], html.sc-native-customized [data-sc-region="surface"] h1, html.sc-native-customized [data-sc-region="surface"] h2 { letter-spacing: -0.015em; line-height: 1.15 !important; }'
+    );
+  }
   if (customization.font !== "native") {
     rules.push(
       `html.sc-native-customized [data-sc-region] { font-family: ${FONTS[customization.font]} !important; }`
@@ -427,7 +602,7 @@ export function generateNativeThemeCss(
   }
   rules.push(
     '@media (max-width: 44rem) { html.sc-native-customized main[data-sc-region="page-canvas"], html.sc-native-customized #main[data-sc-region="page-canvas"], html.sc-native-customized #main-content[data-sc-region="page-canvas"] { width: 100%; max-width: 100%; } html.sc-native-customized [data-sc-region="right-rail"], html.sc-native-customized [data-sc-region="left-rail"] { max-width: 100%; } }',
-    "@media (prefers-reduced-motion: reduce) { html.sc-native-customized [data-sc-region], html.sc-native-customized [data-sc-region] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }"
+    '@media (prefers-reduced-motion: reduce) { html.sc-native-customized [data-sc-region], html.sc-native-customized [data-sc-region] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } html.sc-native-customized [data-sc-region="course-card"]:hover, html.sc-native-customized [data-sc-theme-role="control"]:active { transform: none !important; } }'
   );
   return rules.join("\n");
 }

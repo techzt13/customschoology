@@ -8,7 +8,8 @@ developer-controlled server.
 Chrome local extension storage may contain:
 
 - Appearance and density preferences.
-- Native Schoology page colors, typography, layout, and optional region visibility preferences.
+- Native Schoology preset, semantic colors, typography, component treatments, layout, motion, and
+  optional region visibility preferences.
 - Approved custom Schoology domain names.
 - Detected course identifiers and names, plus private nicknames and colors.
 - Assignment identifiers marked complete in the private Today plan.
@@ -42,9 +43,9 @@ never stored or transmitted. Preserve and Manual modes do not apply runtime subs
 
 ## Optional credentials
 
-The current milestone does not request or store Schoology API credentials. Any future credential
-feature requires a separate security review, explicit consent, local-only storage, and deletion
-controls before release.
+**Unsupported:** the extension does not request or store Schoology API credentials. Any future
+credential feature requires a separate security review, explicit consent, local-only storage, and
+deletion controls before release.
 
 Grade scenarios use values entered by the student and never edit or submit official Schoology
 grades. Assessment warnings inspect supported answer controls only at submit time and do not store

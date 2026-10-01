@@ -52,6 +52,7 @@ describe("native Schoology semantic discovery", () => {
       document.querySelector('[aria-label="To Do"][data-sc-region="right-rail"]')
     ).not.toBeNull();
     expect(document.querySelector('[role="tab"][data-sc-theme-role="tab-active"]')).not.toBeNull();
+    expect(document.querySelector('[data-sc-theme-role="empty"]')).not.toBeNull();
     expect(document.querySelector("iframe")?.hasAttribute(THEME_ROLE_ATTRIBUTE)).toBe(false);
     expect(document.querySelector("[data-status]")?.hasAttribute(THEME_ROLE_ATTRIBUTE)).toBe(false);
     const unknown = document.createElement("a");
@@ -147,7 +148,6 @@ describe("annotation-scoped theme generation", () => {
     discoverThemeRegions(document);
     const css = generateNativeThemeCss(
       DEFAULT_SETTINGS.nativeCustomization,
-      "comfortable",
       detectedThemeRegions(document)
     );
 
@@ -162,7 +162,6 @@ describe("annotation-scoped theme generation", () => {
   it("does not emit a foreground rule for an unknown native region", () => {
     const css = generateNativeThemeCss(
       DEFAULT_SETTINGS.nativeCustomization,
-      "comfortable",
       new Set(["institution-header"])
     );
 
@@ -171,21 +170,19 @@ describe("annotation-scoped theme generation", () => {
     expect(css).not.toMatch(/\[data-sc-region="surface"\]\s*\{[^}]*background-color/);
   });
 
-  it("never changes root font-size and emits no optional font by default", () => {
+  it("never changes root font-size and scopes the preset font to discovered regions", () => {
     const css = generateNativeThemeCss(
       DEFAULT_SETTINGS.nativeCustomization,
-      "comfortable",
       new Set(["page-canvas"])
     );
 
     expect(css).not.toMatch(/font-size\s*:/i);
-    expect(css).not.toContain("font-family:");
+    expect(css).toContain("html.sc-native-customized [data-sc-region] { font-family:");
   });
 
   it("applies interaction, focus, disabled, responsive, and reduced-motion states", () => {
     const css = generateNativeThemeCss(
       DEFAULT_SETTINGS.nativeCustomization,
-      "comfortable",
       new Set(["page-canvas", "right-rail"])
     );
 
@@ -201,7 +198,6 @@ describe("annotation-scoped theme generation", () => {
     expect(
       generateNativeThemeCss(
         { ...DEFAULT_SETTINGS.nativeCustomization, enabled: false },
-        "comfortable",
         new Set(["page-canvas"])
       )
     ).toBe("");

@@ -84,7 +84,7 @@ describe("normalizeDomain", () => {
         theme: "calm"
       });
 
-      expect(migrated.schemaVersion).toBe(4);
+      expect(migrated.schemaVersion).toBe(5);
       expect(migrated.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
       expect(migrated.accent).toBe("#123456");
     });
@@ -137,18 +137,24 @@ describe("normalizeDomain", () => {
           settings: {
             nativeCustomization: {
               ...DEFAULT_SETTINGS.nativeCustomization,
+              cardTreatment: "image-forward",
               contrastMode: "manual",
+              layoutStyle: "glass",
+              presetId: "lavender-circuit",
               tokens: {
                 ...DEFAULT_SETTINGS.nativeCustomization.tokens,
                 rightRail: "#123456"
               }
             }
           },
-          version: 4
+          version: 5
         })
       );
       expect(imported.nativeCustomization.contrastMode).toBe("manual");
       expect(imported.nativeCustomization.tokens.rightRail).toBe("#123456");
+      expect(imported.nativeCustomization.presetId).toBe("lavender-circuit");
+      expect(imported.nativeCustomization.layoutStyle).toBe("glass");
+      expect(imported.nativeCustomization.cardTreatment).toBe("image-forward");
     });
 
     it("exports the migrated schema and native customization", async () => {
@@ -169,8 +175,8 @@ describe("normalizeDomain", () => {
         settings: typeof DEFAULT_SETTINGS;
         version: number;
       };
-      expect(exported.version).toBe(4);
-      expect(exported.settings.schemaVersion).toBe(4);
+      expect(exported.version).toBe(5);
+      expect(exported.settings.schemaVersion).toBe(5);
       expect(exported.settings.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
     });
 

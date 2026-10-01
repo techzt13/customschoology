@@ -1,20 +1,36 @@
 # Schoology Companion
 
 Schoology Companion is a privacy-first Chrome extension that adds an accessible, customizable
-student workspace to Schoology. The first milestone provides a local Today panel, progressive
-custom-domain access, appearance presets, and explicit control over local data.
+student workspace to Schoology with a local Today panel, progressive custom-domain access, complete
+native-shell themes, planning tools, and explicit control over local data.
 
 The project is independent and is not affiliated with PowerSchool or Schoology. It is an original
 implementation and does not include SchoologyPlus source or assets.
 
-## Current milestone
+## Capability status
+
+| Capability                                           | Status                     |
+| ---------------------------------------------------- | -------------------------- |
+| Local Today, planning, course workspace, settings    | Available                  |
+| 20 complete native-shell visual presets              | Experimental               |
+| Native Schoology adapters on institution deployments | Needs real-site validation |
+| Manual total-points grade scenarios                  | Available                  |
+| Automatic grade import and unverified grade rules    | Unsupported                |
+| Schoology API credentials and background polling     | Unsupported                |
+| Firefox packaging                                    | Unsupported                |
+
+Implementation checks passing does not mean production compatibility is signed off. Native adapters,
+responsive behavior, keyboard/screen-reader behavior, and observer performance still require manual
+validation on both Schoology-hosted and custom-domain deployments.
+
+## Available implementation
 
 - Manifest V3 extension with a service worker, content script, popup, and options page.
 - Automatic support for `*.schoology.com` and user-approved custom HTTPS domains.
 - Page capability detection and a fixture-tested upcoming-work adapter.
 - In-page Today panel with official status labels and a separate private completion list.
-- System, Calm, High Contrast, and Expressive presets; density, accent, course nickname, and course
-  color controls.
+- Exactly 20 complete native-shell presets spanning light, dark, high-contrast, expressive, and
+  productivity treatments, plus density, accent, course nickname, and course color controls.
 - Safe, reversible full-shell styling for positively identified institution headers, dashboard tabs,
   page canvases, dashboard grids, course cards, left/right rails, surfaces, controls,
   modals/popovers, and footers.
@@ -32,6 +48,22 @@ implementation and does not include SchoologyPlus source or assets.
 
 Automatic gradebook import, weighted/dropped/extra-credit simulation, API credentials,
 notifications, background polling, and Firefox packaging are intentionally deferred.
+
+## Visual presets
+
+Every preset is an immutable, complete 16-token and component-style snapshot. Applying one sets its
+font, density, width, corners, elevation, control, navigation, tab, rail, card, layout, and motion
+treatments together; later edits are shown as **Customized**.
+
+| Light and editorial                                          | Dark and high contrast                                | Expressive and productivity                                          |
+| ------------------------------------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Clear Horizon, Porcelain Air, Sandstone Notes, Arctic Ledger | Midnight Study, Deep Current, Forest Night, Pure OLED | Petal Mist, Mint Canvas, Electric Berry, Ocean Atlas, Evergreen Desk |
+| Pressroom, Graphite Line, Signal Light                       | Signal Dark                                           | Solar Ember, Lavender Circuit, Slate Sprint                          |
+
+All required preset foreground/background and component-state pairs are validated before build:
+normal text at least 4.5:1, with boundaries, selection indicators, and focus rings at least 3:1.
+Automatic runtime contrast remains a fallback for institution-specific nested backgrounds, not a way
+to make an invalid preset pass.
 
 ## Development
 

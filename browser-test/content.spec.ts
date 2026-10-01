@@ -17,9 +17,10 @@ async function extensionContext(profile: string): Promise<{
 }
 
 test("content script preserves native geometry and enhances supported workflows", async ({}, testInfo) => {
+  test.setTimeout(90_000);
   const home = await readFile("test/fixtures/browser-schoology.html", "utf8");
   const assessment = await readFile("test/fixtures/browser-assessment.html", "utf8");
-  const { context } = await extensionContext(testInfo.outputPath("profile"));
+  const { context, extensionId } = await extensionContext(testInfo.outputPath("profile"));
   await context.route("https://example.schoology.com/**", async (route) => {
     await route.fulfill({
       body: route.request().url().includes("/assessment/") ? assessment : home,
@@ -51,8 +52,8 @@ test("content script preserves native geometry and enhances supported workflows"
       "data-sc-theme-role",
       "tab-active"
     );
-    await expect(page.locator("#header")).toHaveCSS("background-color", "rgb(40, 49, 66)");
-    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(246, 247, 251)");
+    await expect(page.locator("#header")).toHaveCSS("background-color", "rgb(38, 50, 71)");
+    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(244, 246, 250)");
     await expect(page.locator("#header img")).not.toHaveAttribute("data-sc-theme-role");
     const rootFontSize = await page
       .locator("html")
@@ -72,7 +73,7 @@ test("content script preserves native geometry and enhances supported workflows"
       "data-sc-theme-role",
       "tab-inactive"
     );
-    await expect(page.locator("#dynamic-tab")).toHaveCSS("color", "rgb(95, 104, 122)");
+    await expect(page.locator("#dynamic-tab")).toHaveCSS("color", "rgb(71, 85, 105)");
 
     const worker = context.serviceWorkers()[0]!;
     await worker.evaluate(async () => {
@@ -128,6 +129,34 @@ test("content script preserves native geometry and enhances supported workflows"
       path: testInfo.outputPath("full-shell-theme-narrow.png")
     });
     expect(narrowScreenshot.byteLength).toBeGreaterThan(1_000);
+    const options = await context.newPage();
+    await options.goto(`chrome-extension://${extensionId}/options/index.html`);
+    for (const preset of [
+      { header: "rgb(38, 50, 71)", name: "Clear Horizon", radius: "10px" },
+      { header: "rgb(11, 17, 32)", name: "Midnight Study", radius: "18px" },
+      { header: "rgb(0, 0, 0)", name: "Signal Light", radius: "4px" },
+      { header: "rgb(134, 25, 143)", name: "Electric Berry", radius: "18px" },
+      { header: "rgb(30, 41, 59)", name: "Slate Sprint", radius: "4px" }
+    ]) {
+      await options.getByRole("radio", { name: new RegExp(preset.name) }).check();
+      await options.getByRole("button", { name: "Apply selected preset" }).click();
+      await expect(options.getByText(`Applied preset: ${preset.name}`)).toBeVisible();
+      await expect(page.locator("#header")).toHaveCSS("background-color", preset.header);
+      await expect(page.locator(".course-card")).toHaveCSS("border-radius", preset.radius);
+      await page.setViewportSize({ height: 900, width: 1280 });
+      const full = await page.screenshot({
+        fullPage: true,
+        path: testInfo.outputPath(`${preset.name.toLowerCase().replaceAll(" ", "-")}-full.png`)
+      });
+      expect(full.byteLength).toBeGreaterThan(1_000);
+      await page.setViewportSize({ height: 900, width: 640 });
+      const narrow = await page.screenshot({
+        fullPage: true,
+        path: testInfo.outputPath(`${preset.name.toLowerCase().replaceAll(" ", "-")}-narrow.png`)
+      });
+      expect(narrow.byteLength).toBeGreaterThan(1_000);
+    }
+    await options.close();
 
     await worker.evaluate(async () => {
       const stored = await chrome.storage.local.get("settings");

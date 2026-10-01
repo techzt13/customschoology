@@ -205,7 +205,7 @@ export function parseSettings(value: unknown): Settings {
     manualCompletions: parseManualCompletions(value.manualCompletions),
     nativeCustomization: sanitizeNativeCustomization(nativeInput),
     panelEnabled: value.panelEnabled !== false,
-    schemaVersion: 4,
+    schemaVersion: 5,
     theme
   };
 }
@@ -294,7 +294,7 @@ export async function exportLocalData(): Promise<string> {
       exportedAt: new Date().toISOString(),
       format: "schoology-companion-settings",
       settings,
-      version: 4
+      version: 5
     },
     null,
     2

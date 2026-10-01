@@ -31,7 +31,7 @@ test("options loads accessibly and supports local grade scenarios", async ({}, t
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "A workspace that feels like yours"
     );
-    await expect(page.getByLabel("System font family")).toHaveValue("native");
+    await expect(page.getByLabel("System font family")).toHaveValue("system");
     await expect(page.getByLabel("Typography scale")).toHaveCount(0);
     await expect(page.getByLabel("Contrast mode")).toHaveValue("automatic");
     await expect(page.getByText("Institution header and primary navigation (1)")).toBeVisible();
@@ -55,9 +55,46 @@ test("options loads accessibly and supports local grade scenarios", async ({}, t
 
     await page.getByLabel("Contrast mode").selectOption("manual");
     await linkToken.getByRole("button", { name: "Reset Links" }).click();
-    await expect(page.locator("#native-token-link")).toHaveValue("#4338ca");
+    await expect(page.locator("#native-token-link")).toHaveValue("#1d4ed8");
     await expect(page.getByRole("button", { name: "Reset semantic colors" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Reset layout and visibility" })).toBeVisible();
+
+    await expect(page.getByRole("radio")).toHaveCount(20);
+    await expect(page.locator(".sc-preset-pass")).toHaveCount(20);
+    const clearHorizon = page.getByRole("radio", { name: /Clear Horizon/ });
+    await clearHorizon.focus();
+    await clearHorizon.press("ArrowRight");
+    await expect(page.getByRole("radio", { name: /Porcelain Air/ })).toBeChecked();
+    await page.getByRole("button", { name: "Dark", exact: true }).click();
+    await expect(page.getByRole("radio", { name: /Midnight Study/ })).toBeVisible();
+    await expect(clearHorizon).toBeHidden();
+    await page.getByRole("button", { name: "All", exact: true }).click();
+
+    await page.getByRole("radio", { name: /Midnight Study/ }).check();
+    await page.getByRole("button", { name: "Preview without saving" }).click();
+    await expect(page.getByText(/Previewing Midnight Study; not saved/)).toBeVisible();
+    await expect(page.locator(".sc-native-preview-header")).toHaveCSS(
+      "background-color",
+      "rgb(11, 17, 32)"
+    );
+    expect(
+      await worker.evaluate(async () => {
+        const stored = await chrome.storage.local.get("settings");
+        return (stored.settings as { nativeCustomization: { presetId: string } })
+          .nativeCustomization.presetId;
+      })
+    ).not.toBe("midnight-study");
+    await page.getByRole("button", { name: "Cancel preview" }).click();
+    await page.getByRole("button", { name: "Apply selected preset" }).click();
+    await expect(page.getByText("Applied preset: Midnight Study")).toBeVisible();
+    await page.locator("#native-token-accent").fill("#123456");
+    await expect(page.getByText("Applied preset: Midnight Study · Customized")).toBeVisible();
+    await page.getByRole("button", { name: "Reset semantic colors" }).click();
+    await expect(page.locator("#native-token-accent")).toHaveValue("#4f46e5");
+    await page.getByRole("button", { name: "Reset layout and visibility" }).click();
+    await expect(page.getByLabel("Layout style")).toHaveValue("soft-elevated");
+    await page.getByRole("button", { name: "Reset all Schoology page styling" }).click();
+    await expect(page.getByText("Applied preset: Clear Horizon")).toBeVisible();
 
     await page.getByLabel("Scenario name").fill("Final project");
     await page.getByLabel("Current points earned").fill("80");

@@ -31,7 +31,10 @@ screenshots, fixtures, bug reports, or repository files.
 
 ## Customization and data
 
-- Test all presets in light/dark system modes, compact density, and a custom accent.
+- Test all 20 full-shell presets and gallery filters in light/dark system modes. Exercise keyboard
+  radio selection, preview without saving, cancel/revert, apply, and the Customized indicator.
+- Compare representative clean-light, dark, high-contrast, expressive, and productivity presets at
+  full width, narrow width, and 200% zoom.
 - Verify the institution header/navigation and icon controls, secondary dashboard tabs, page canvas,
   dashboard grid, card/image/text areas, left gutter/rail, separate To Do/upcoming rail and inner
   sections, common content boxes, buttons/inputs/dropdowns, modal/popover surfaces, and footer.

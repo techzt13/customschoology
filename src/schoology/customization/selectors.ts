@@ -163,11 +163,13 @@ function discoverStructuralRegions(
 
 function annotateThemeRoles(region: HTMLElement): void {
   const candidates = region.querySelectorAll<HTMLElement>(
-    "a, button, input, select, textarea, [role='button'], [role='tab'], h1, h2, h3, h4, h5, h6, label"
+    "a, button, input, select, textarea, [role='button'], [role='tab'], h1, h2, h3, h4, h5, h6, label, [data-empty], .empty-state"
   );
   for (const element of [...candidates].slice(0, 800)) {
     if (element.closest(STATUS_OR_AUTHORED_CONTENT)) continue;
-    if (element.matches("[role='tab']")) {
+    if (element.matches("[data-empty], .empty-state")) {
+      element.setAttribute(THEME_ROLE_ATTRIBUTE, "empty");
+    } else if (element.matches("[role='tab']")) {
       const active =
         element.getAttribute("aria-selected") === "true" ||
         element.getAttribute("aria-current") === "page" ||
