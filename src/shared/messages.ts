@@ -1,4 +1,4 @@
-import type { CoursePreference, PageSnapshot, Settings } from "./models";
+import type { CoursePreference, NativeCustomization, PageSnapshot, Settings } from "./models";
 
 export type SettingsMutation =
   | {
@@ -10,6 +10,7 @@ export type SettingsMutation =
   | { domain: string; kind: "REMOVE_DOMAIN" }
   | { courses: Record<string, CoursePreference>; kind: "ADD_COURSES" }
   | { courseId: string; kind: "SET_COURSE"; preference: CoursePreference }
+  | { customization: NativeCustomization; kind: "SET_NATIVE" }
   | { kind: "REPLACE"; settings: Settings };
 
 export type RuntimeMessage =
@@ -54,6 +55,12 @@ function isSettingsMutation(value: unknown): value is SettingsMutation {
         "preference" in value &&
         typeof value.preference === "object" &&
         value.preference !== null
+      );
+    case "SET_NATIVE":
+      return (
+        "customization" in value &&
+        typeof value.customization === "object" &&
+        value.customization !== null
       );
     case "REPLACE":
       return "settings" in value && typeof value.settings === "object" && value.settings !== null;

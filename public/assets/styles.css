@@ -266,6 +266,73 @@ a:focus-visible {
   padding-top: 1rem;
 }
 
+.sc-native-setting {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(8rem, 14rem) auto;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 1px solid var(--sc-border);
+  padding-top: 0.75rem;
+}
+
+.sc-native-setting > label {
+  font-weight: 750;
+}
+
+.sc-native-setting input[type="color"],
+.sc-native-setting input[type="range"],
+.sc-native-setting select {
+  width: 100%;
+}
+
+.sc-native-setting input[type="checkbox"] {
+  justify-self: start;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.sc-native-preview {
+  overflow: hidden;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--preview-radius);
+  background: var(--preview-bg);
+  color: var(--preview-text);
+  font-family: var(--preview-font);
+  font-size: calc(1rem * var(--preview-scale));
+}
+
+.sc-native-preview-header {
+  padding: 0.7rem 1rem;
+  background: var(--preview-accent);
+  color: white;
+  font-weight: 800;
+}
+
+.sc-native-preview-layout {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.sc-native-preview-rail,
+.sc-native-preview-card {
+  border: 1px solid var(--sc-border);
+  border-radius: var(--preview-radius);
+  background: var(--preview-surface);
+  box-shadow: var(--preview-shadow);
+  padding: 0.75rem;
+}
+
+.sc-native-preview-card {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sc-native-preview-card a {
+  color: var(--preview-link);
+}
+
 .sc-message {
   border-inline-start: 4px solid var(--sc-accent);
   padding: 0.75rem 1rem;
@@ -293,6 +360,14 @@ a:focus-visible {
 
   .sc-course-setting {
     grid-template-columns: 1fr;
+  }
+
+  .sc-native-setting {
+    grid-template-columns: 1fr auto;
+  }
+
+  .sc-native-setting > label {
+    grid-column: 1 / -1;
   }
 }
 

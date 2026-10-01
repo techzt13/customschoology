@@ -1,7 +1,18 @@
 import { element } from "../shared/dom";
-import { DEFAULT_SETTINGS, type Density, type Settings, type ThemePreset } from "../shared/models";
+import {
+  DEFAULT_SETTINGS,
+  type Density,
+  type NativeCustomization,
+  type Settings,
+  type ThemePreset
+} from "../shared/models";
 import { exportLocalData, importLocalData, loadSettings, mutateSettings } from "../shared/storage";
 import { originPattern } from "../schoology/url";
+import {
+  contrastRatio,
+  resetNativeSetting,
+  safeTextColor
+} from "../schoology/customization/native-theme";
 
 const appNode = document.querySelector<HTMLElement>("#app");
 if (!appNode) throw new Error("Settings application root is missing.");
@@ -147,6 +158,216 @@ function appearanceSection(settings: Settings): HTMLElement {
   });
   accentField.append(accentLabel, accent);
   node.append(accentField);
+  return node;
+}
+
+function nativeCustomizationSection(settings: Settings): HTMLElement {
+  const node = section(
+    "native",
+    "Schoology page",
+    "Restyle supported native Schoology regions without replacing or rewriting their content."
+  );
+  let current = settings.nativeCustomization;
+
+  const preview = element("div", { className: "sc-native-preview" });
+  preview.setAttribute("aria-label", "Live Schoology customization preview");
+  const previewHeader = element("div", {
+    className: "sc-native-preview-header",
+    text: "Schoology"
+  });
+  const previewLayout = element("div", { className: "sc-native-preview-layout" });
+  const previewRail = element("div", { className: "sc-native-preview-rail", text: "Courses" });
+  const previewCard = element("div", { className: "sc-native-preview-card" });
+  const previewLink = element("a", { text: "Upcoming assignment" });
+  previewLink.href = "#native";
+  previewCard.append(
+    element("strong", { text: "Course dashboard" }),
+    previewLink,
+    element("button", { text: "Open course" })
+  );
+  previewLayout.append(previewRail, previewCard);
+  preview.append(previewHeader, previewLayout);
+
+  const contrastNote = element("p", { className: "sc-muted" });
+  contrastNote.setAttribute("role", "status");
+
+  const updatePreview = (): void => {
+    preview.style.setProperty("--preview-bg", current.background);
+    preview.style.setProperty("--preview-surface", current.surface);
+    preview.style.setProperty("--preview-text", safeTextColor(current.text, current.surface));
+    preview.style.setProperty("--preview-accent", settings.accent);
+    preview.style.setProperty("--preview-link", safeTextColor(settings.accent, current.surface));
+    preview.style.setProperty(
+      "--preview-font",
+      current.font === "serif"
+        ? "Georgia, serif"
+        : current.font === "humanist"
+          ? '"Trebuchet MS", system-ui, sans-serif'
+          : current.font === "rounded"
+            ? 'ui-rounded, "SF Pro Rounded", system-ui, sans-serif'
+            : "system-ui, sans-serif"
+    );
+    preview.style.setProperty(
+      "--preview-radius",
+      current.corners === "round" ? "18px" : current.corners === "soft" ? "10px" : "4px"
+    );
+    preview.style.setProperty("--preview-scale", String(current.fontScale));
+    preview.style.setProperty(
+      "--preview-shadow",
+      current.shadow === "subtle" ? "0 8px 24px rgb(20 28 45 / 12%)" : "none"
+    );
+    preview.hidden = !current.enabled;
+    const ratio = contrastRatio(current.text, current.surface);
+    contrastNote.textContent =
+      ratio >= 4.5
+        ? `Text contrast ${ratio.toFixed(1)}:1 meets the readability safeguard.`
+        : `Requested text contrast is ${ratio.toFixed(1)}:1; Schoology will use a safer black or white text color.`;
+  };
+
+  const save = (next: NativeCustomization, confirmation: string): Promise<void> => {
+    current = next;
+    updatePreview();
+    return mutateSettings({ customization: next, kind: "SET_NATIVE" })
+      .then(() => {
+        announce(confirmation);
+      })
+      .catch((error: unknown) => {
+        announce(error instanceof Error ? error.message : "Could not save customization.", true);
+      });
+  };
+
+  const resetButton = <K extends keyof NativeCustomization>(key: K): HTMLButtonElement => {
+    const button = element("button", { className: "sc-button-secondary", text: "Reset" });
+    button.type = "button";
+    button.setAttribute("aria-label", `Reset ${key}`);
+    button.addEventListener("click", () => {
+      void save(resetNativeSetting(current, key), `${key} reset.`).then(render);
+    });
+    return button;
+  };
+
+  const row = <K extends keyof NativeCustomization>(
+    key: K,
+    labelText: string,
+    control: HTMLElement
+  ): HTMLElement => {
+    const wrapper = element("div", { className: "sc-native-setting" });
+    const label = element("label", { text: labelText });
+    const id = `native-${String(key)}`;
+    label.htmlFor = id;
+    control.id = id;
+    wrapper.append(label, control, resetButton(key));
+    return wrapper;
+  };
+
+  const enabled = element("input");
+  enabled.type = "checkbox";
+  enabled.checked = current.enabled;
+  enabled.addEventListener("change", () => {
+    void save({ ...current, enabled: enabled.checked }, "Native Schoology customization saved.");
+  });
+
+  const colorControl = (
+    key: "background" | "surface" | "text" | "border",
+    label: string
+  ): HTMLElement => {
+    const input = element("input");
+    input.type = "color";
+    input.value = current[key];
+    input.addEventListener("input", () => {
+      void save({ ...current, [key]: input.value }, `${label} saved.`);
+    });
+    return row(key, label, input);
+  };
+
+  const selectControl = <K extends "font" | "contentWidth" | "corners" | "shadow">(
+    key: K,
+    label: string,
+    values: Array<[NativeCustomization[K], string]>
+  ): HTMLElement => {
+    const select = element("select");
+    for (const [value, text] of values) {
+      const option = element("option", { text });
+      option.value = String(value);
+      option.selected = value === current[key];
+      select.append(option);
+    }
+    select.addEventListener("change", () => {
+      void save({ ...current, [key]: select.value as NativeCustomization[K] }, `${label} saved.`);
+    });
+    return row(key, label, select);
+  };
+
+  const scale = element("input");
+  scale.type = "range";
+  scale.min = "0.9";
+  scale.max = "1.2";
+  scale.step = "0.05";
+  scale.value = String(current.fontScale);
+  scale.addEventListener("input", () => {
+    void save({ ...current, fontScale: Number(scale.value) }, "Typography scale saved.");
+  });
+
+  const visibilityControl = (
+    key: "hideLeftRail" | "hideRightRail" | "hideFooter",
+    label: string
+  ): HTMLElement => {
+    const input = element("input");
+    input.type = "checkbox";
+    input.checked = current[key];
+    input.addEventListener("change", () => {
+      void save({ ...current, [key]: input.checked }, `${label} saved.`);
+    });
+    return row(key, label, input);
+  };
+
+  const resetAll = element("button", {
+    className: "sc-button-danger",
+    text: "Reset all Schoology page styling"
+  });
+  resetAll.type = "button";
+  resetAll.addEventListener("click", () => {
+    void save(
+      structuredClone(DEFAULT_SETTINGS.nativeCustomization),
+      "Schoology page styling reset."
+    ).then(render);
+  });
+
+  node.append(
+    row("enabled", "Customize native Schoology pages", enabled),
+    preview,
+    contrastNote,
+    colorControl("background", "Page background"),
+    colorControl("surface", "Content surface"),
+    colorControl("text", "Text color"),
+    colorControl("border", "Border color"),
+    selectControl("font", "System font family", [
+      ["system", "System"],
+      ["humanist", "Humanist"],
+      ["rounded", "Rounded"],
+      ["serif", "Serif"]
+    ]),
+    row("fontScale", "Typography scale", scale),
+    selectControl("contentWidth", "Content width", [
+      ["default", "Schoology default"],
+      ["focused", "Focused"],
+      ["wide", "Wide"]
+    ]),
+    selectControl("corners", "Corners", [
+      ["schoology", "Schoology default"],
+      ["soft", "Soft"],
+      ["round", "Rounded"]
+    ]),
+    selectControl("shadow", "Surface shadows", [
+      ["none", "None"],
+      ["subtle", "Subtle"]
+    ]),
+    visibilityControl("hideLeftRail", "Hide left rail when detected"),
+    visibilityControl("hideRightRail", "Hide right rail when detected"),
+    visibilityControl("hideFooter", "Hide footer when detected"),
+    resetAll
+  );
+  updatePreview();
   return node;
 }
 
@@ -369,6 +590,7 @@ async function render(): Promise<void> {
   nav.setAttribute("aria-label", "Settings sections");
   const navigationLinks: Array<[string, string]> = [
     ["#appearance", "Appearance"],
+    ["#native", "Schoology page"],
     ["#workflow", "Today workflow"],
     ["#courses", "Courses"],
     ["#compatibility", "Compatibility"],
@@ -383,6 +605,7 @@ async function render(): Promise<void> {
   const content = element("div", { className: "sc-stack" });
   content.append(
     appearanceSection(settings),
+    nativeCustomizationSection(settings),
     workflowSection(settings),
     coursesSection(settings),
     domainsSection(settings),

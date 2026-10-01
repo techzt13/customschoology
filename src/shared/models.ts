@@ -1,5 +1,25 @@
 export type ThemePreset = "system" | "calm" | "contrast" | "expressive";
 export type Density = "comfortable" | "compact";
+export type NativeFont = "system" | "humanist" | "rounded" | "serif";
+export type NativeContentWidth = "default" | "focused" | "wide";
+export type NativeCorners = "schoology" | "soft" | "round";
+export type NativeShadow = "none" | "subtle";
+
+export interface NativeCustomization {
+  background: string;
+  border: string;
+  contentWidth: NativeContentWidth;
+  corners: NativeCorners;
+  enabled: boolean;
+  font: NativeFont;
+  fontScale: number;
+  hideFooter: boolean;
+  hideLeftRail: boolean;
+  hideRightRail: boolean;
+  shadow: NativeShadow;
+  surface: string;
+  text: string;
+}
 
 export interface CoursePreference {
   accent: string;
@@ -12,8 +32,9 @@ export interface Settings {
   density: Density;
   enabledDomains: string[];
   manualCompletions: Record<string, true>;
+  nativeCustomization: NativeCustomization;
   panelEnabled: boolean;
-  schemaVersion: 1;
+  schemaVersion: 2;
   theme: ThemePreset;
 }
 
@@ -46,7 +67,22 @@ export const DEFAULT_SETTINGS: Settings = {
   density: "comfortable",
   enabledDomains: [],
   manualCompletions: {},
+  nativeCustomization: {
+    background: "#f6f7fb",
+    border: "#d8dce6",
+    contentWidth: "default",
+    corners: "soft",
+    enabled: true,
+    font: "system",
+    fontScale: 1,
+    hideFooter: false,
+    hideLeftRail: false,
+    hideRightRail: false,
+    shadow: "subtle",
+    surface: "#ffffff",
+    text: "#1c2230"
+  },
   panelEnabled: true,
-  schemaVersion: 1,
+  schemaVersion: 2,
   theme: "system"
 };

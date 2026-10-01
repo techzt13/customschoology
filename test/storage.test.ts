@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SETTINGS } from "../src/shared/models";
-import { applyMutation, normalizeDomain, parseSettings } from "../src/shared/storage";
+import {
+  applyMutation,
+  exportLocalData,
+  importLocalData,
+  normalizeDomain,
+  parseSettings
+} from "../src/shared/storage";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("settings validation", () => {
   it("accepts safe customization and strips malformed values", () => {
@@ -62,6 +72,65 @@ describe("normalizeDomain", () => {
 
       expect(withTheme.manualCompletions).toEqual({ "assignment-1": true });
       expect(withTheme.theme).toBe("contrast");
+    });
+  });
+
+  describe("settings migrations and imports", () => {
+    it("migrates schema version one settings to native customization defaults", () => {
+      const migrated = parseSettings({
+        accent: "#123456",
+        density: "compact",
+        schemaVersion: 1,
+        theme: "calm"
+      });
+
+      expect(migrated.schemaVersion).toBe(2);
+      expect(migrated.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
+      expect(migrated.accent).toBe("#123456");
+    });
+
+    it("validates native customization during import", () => {
+      const imported = importLocalData(
+        JSON.stringify({
+          format: "schoology-companion-settings",
+          settings: {
+            nativeCustomization: {
+              ...DEFAULT_SETTINGS.nativeCustomization,
+              background: "not-a-color",
+              fontScale: 0
+            }
+          },
+          version: 2
+        })
+      );
+
+      expect(imported.nativeCustomization.background).toBe(
+        DEFAULT_SETTINGS.nativeCustomization.background
+      );
+      expect(imported.nativeCustomization.fontScale).toBe(0.9);
+    });
+
+    it("exports the migrated schema and native customization", async () => {
+      vi.stubGlobal("chrome", {
+        storage: {
+          local: {
+            get: vi.fn().mockResolvedValue({
+              settings: {
+                accent: "#123456",
+                schemaVersion: 1
+              }
+            })
+          }
+        }
+      });
+
+      const exported = JSON.parse(await exportLocalData()) as {
+        settings: typeof DEFAULT_SETTINGS;
+        version: number;
+      };
+      expect(exported.version).toBe(2);
+      expect(exported.settings.schemaVersion).toBe(2);
+      expect(exported.settings.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
     });
   });
 });

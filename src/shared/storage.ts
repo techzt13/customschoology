@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, type CoursePreference, type Settings } from "./models";
 import type { RuntimeResponse, SettingsMutation } from "./messages";
+import { sanitizeNativeCustomization } from "../schoology/customization/native-theme";
 
 const SETTINGS_KEY = "settings";
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
@@ -79,8 +80,9 @@ export function parseSettings(value: unknown): Settings {
     density,
     enabledDomains,
     manualCompletions: parseManualCompletions(value.manualCompletions),
+    nativeCustomization: sanitizeNativeCustomization(value.nativeCustomization),
     panelEnabled: value.panelEnabled !== false,
-    schemaVersion: 1,
+    schemaVersion: 2,
     theme
   };
 }
@@ -127,6 +129,11 @@ export function applyMutation(current: Settings, mutation: SettingsMutation): Se
           [mutation.courseId]: mutation.preference
         }
       });
+    case "SET_NATIVE":
+      return parseSettings({
+        ...current,
+        nativeCustomization: mutation.customization
+      });
     case "REPLACE":
       return parseSettings(mutation.settings);
   }
@@ -149,7 +156,7 @@ export async function exportLocalData(): Promise<string> {
       exportedAt: new Date().toISOString(),
       format: "schoology-companion-settings",
       settings,
-      version: 1
+      version: 2
     },
     null,
     2

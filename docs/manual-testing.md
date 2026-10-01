@@ -32,6 +32,14 @@ screenshots, fixtures, bug reports, or repository files.
 ## Customization and data
 
 - Test all presets in light/dark system modes, compact density, and a custom accent.
+- Verify native header, page background, content surfaces, course cards, detected rails, links,
+  buttons, typography, width, borders, corners, spacing, and shadows.
+- Toggle each optional visibility control and confirm only the named nonessential region changes.
+- Use every per-setting reset and reset-all; confirm Schoology returns immediately to its prior
+  native presentation when customization is disabled.
+- Confirm official submitted, late, missing, grade, and alert semantics remain visible and readable.
+- Navigate to an unknown or institution-customized layout and confirm unsupported regions remain
+  untouched.
 - Verify keyboard focus and text contrast at 100% and 200% zoom.
 - Export data, reset, import the export, and confirm settings return.
 - Attempt to import malformed and unrelated JSON; confirm existing settings remain intact.

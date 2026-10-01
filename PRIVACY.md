@@ -8,6 +8,7 @@ developer-controlled server.
 Chrome local extension storage may contain:
 
 - Appearance and density preferences.
+- Native Schoology page colors, typography, layout, and optional region visibility preferences.
 - Approved custom Schoology domain names.
 - Detected course identifiers and names, plus private nicknames and colors.
 - Assignment identifiers marked complete in the private Today plan.
@@ -24,6 +25,9 @@ Chrome's extension controls.
 The content script reads supported page regions to identify upcoming assignments and visible
 submission states. It does not submit assignments, alter official grades, or send page data
 elsewhere.
+
+Native customization adds an extension-owned class and generated scoped stylesheet to supported
+pages. It does not rewrite Schoology content or store page HTML.
 
 ## Optional credentials
 
