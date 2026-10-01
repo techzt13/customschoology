@@ -58,3 +58,16 @@ screenshots, fixtures, bug reports, or repository files.
 - Verify status changes are announced and icons are not the only source of meaning.
 - Check reduced-motion mode.
 - Profile a page with a long upcoming list and confirm no unbounded mutation loop or long task.
+
+## Course, assignment, and planning workflows
+
+- Favorite courses, set dashboard order, hide/show a card, add a quick link, then disable/reset and
+  confirm Schoology's original inline display/order/border values return exactly.
+- Open a detected materials row through **Plan in Today**, set priority and effort, reload, and
+  confirm focus ordering persists locally.
+- Verify submission-confidence copy distinguishes rendered Schoology status from unavailable state.
+- On a supported assessment fixture/account, submit with unanswered radio, checkbox, text, and
+  select controls; verify the warning prevents the first submit and **Submit anyway** is explicit.
+- Confirm an unknown assessment question type receives no warning rather than an unreliable count.
+- Create, compare, delete, reset, and undo total-points scenarios. Confirm weighted, dropped-grade,
+  and extra-credit modes display unsupported explanations and native grade cells never change.

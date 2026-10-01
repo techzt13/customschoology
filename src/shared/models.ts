@@ -22,7 +22,28 @@ export interface NativeCustomization {
 
 export interface CoursePreference {
   accent: string;
+  favorite: boolean;
+  hidden: boolean;
   nickname: string;
+  order: number;
+  quickLinks: Array<{ label: string; url: string }>;
+}
+
+export interface FocusPlanEntry {
+  assignmentId: string;
+  effortMinutes: 15 | 30 | 60 | 90;
+  priority: 1 | 2 | 3;
+}
+
+export interface GradeScenario {
+  currentEarned: number;
+  currentPossible: number;
+  hypotheticalEarned: number;
+  hypotheticalPossible: number;
+  id: string;
+  name: string;
+  rule: "points" | "weighted" | "dropped" | "extra-credit";
+  targetPercent: number;
 }
 
 export interface Settings {
@@ -30,10 +51,12 @@ export interface Settings {
   coursePreferences: Record<string, CoursePreference>;
   density: Density;
   enabledDomains: string[];
+  focusPlan: Record<string, FocusPlanEntry>;
+  gradeScenarios: GradeScenario[];
   manualCompletions: Record<string, true>;
   nativeCustomization: NativeCustomization;
   panelEnabled: boolean;
-  schemaVersion: 2;
+  schemaVersion: 3;
   theme: ThemePreset;
 }
 
@@ -65,6 +88,8 @@ export const DEFAULT_SETTINGS: Settings = {
   coursePreferences: {},
   density: "comfortable",
   enabledDomains: [],
+  focusPlan: {},
+  gradeScenarios: [],
   manualCompletions: {},
   nativeCustomization: {
     background: "#f6f7fb",
@@ -81,6 +106,6 @@ export const DEFAULT_SETTINGS: Settings = {
     text: "#1c2230"
   },
   panelEnabled: true,
-  schemaVersion: 2,
+  schemaVersion: 3,
   theme: "system"
 };

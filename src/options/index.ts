@@ -13,10 +13,13 @@ import {
   resetNativeSetting,
   safeTextColor
 } from "../schoology/customization/native-theme";
+import { evaluateGradeScenario } from "../domain/grade-planning";
+import type { GradeScenario } from "../shared/models";
 
 const appNode = document.querySelector<HTMLElement>("#app");
 if (!appNode) throw new Error("Settings application root is missing.");
 const app: HTMLElement = appNode;
+let gradeUndoSnapshot: GradeScenario[] | null = null;
 
 function applyAppearance(settings: Settings): void {
   document.documentElement.dataset.theme = settings.theme;
@@ -384,11 +387,13 @@ function workflowSection(settings: Settings): HTMLElement {
 }
 
 function coursesSection(settings: Settings): HTMLElement {
+  const wrapper = element("div", { className: "sc-stack" });
   const node = section(
     "courses",
     "Courses",
     "Courses appear here after they are detected in upcoming work. Nicknames and colors stay private."
   );
+  wrapper.append(node);
   const courses = Object.entries(settings.coursePreferences);
   if (courses.length === 0) {
     node.append(
@@ -397,10 +402,190 @@ function coursesSection(settings: Settings): HTMLElement {
         text: "No courses detected yet. Visit a Schoology page with upcoming work, then return here."
       })
     );
+    wrapper.append(gradeStudioSection(settings));
+    return wrapper;
+  }
+
+  function gradeStudioSection(settings: Settings): HTMLElement {
+    const node = section(
+      "grades",
+      "Grade scenario studio",
+      "Create local, read-only points-based scenarios. Official Schoology grades are never edited."
+    );
+    node.append(
+      element("p", {
+        className: "sc-message",
+        text: "Weighted categories, dropped grades, and extra credit are shown as unsupported until their rules are verified."
+      })
+    );
+
+    const form = element("form", { className: "sc-grade-form" });
+    const input = (
+      name: string,
+      labelText: string,
+      value: string,
+      options: { max?: string; min?: string; step?: string; type?: string } = {}
+    ): HTMLInputElement => {
+      const field = element("div", { className: "sc-field" });
+      const label = element("label", { text: labelText });
+      const control = element("input");
+      control.name = name;
+      control.id = `grade-${name}`;
+      control.type = options.type ?? "number";
+      control.value = value;
+      if (options.min) control.min = options.min;
+      if (options.max) control.max = options.max;
+      if (options.step) control.step = options.step;
+      control.required = true;
+      label.htmlFor = control.id;
+      field.append(label, control);
+      form.append(field);
+      return control;
+    };
+    const name = input("name", "Scenario name", "", { type: "text" });
+    name.maxLength = 80;
+    const currentEarned = input("current-earned", "Current points earned", "0", {
+      min: "0",
+      step: "0.01"
+    });
+    const currentPossible = input("current-possible", "Current points possible", "100", {
+      min: "0.01",
+      step: "0.01"
+    });
+    const hypotheticalEarned = input("hypothetical-earned", "Hypothetical score", "0", {
+      min: "0",
+      step: "0.01"
+    });
+    const hypotheticalPossible = input(
+      "hypothetical-possible",
+      "Hypothetical points possible",
+      "100",
+      { min: "0.01", step: "0.01" }
+    );
+    const target = input("target", "Target percentage", "90", {
+      max: "100",
+      min: "0",
+      step: "0.1"
+    });
+    const ruleField = element("div", { className: "sc-field" });
+    const ruleLabel = element("label", { text: "Gradebook rule" });
+    const rule = element("select");
+    rule.id = "grade-rule";
+    ruleLabel.htmlFor = rule.id;
+    const gradeRules: Array<[GradeScenario["rule"], string]> = [
+      ["points", "Total points"],
+      ["weighted", "Weighted categories (unsupported)"],
+      ["dropped", "Dropped grades (unsupported)"],
+      ["extra-credit", "Extra credit (unsupported)"]
+    ];
+    for (const [value, text] of gradeRules) {
+      const option = element("option", { text });
+      option.value = value;
+      rule.append(option);
+    }
+    ruleField.append(ruleLabel, rule);
+    form.append(ruleField);
+    const add = element("button", { text: "Add scenario" });
+    add.type = "submit";
+    form.append(add);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const scenario: GradeScenario = {
+        currentEarned: Number(currentEarned.value),
+        currentPossible: Number(currentPossible.value),
+        hypotheticalEarned: Number(hypotheticalEarned.value),
+        hypotheticalPossible: Number(hypotheticalPossible.value),
+        id: crypto.randomUUID(),
+        name: name.value.trim(),
+        rule: rule.value as GradeScenario["rule"],
+        targetPercent: Number(target.value)
+      };
+      gradeUndoSnapshot = settings.gradeScenarios;
+      void mutateSettings({
+        kind: "SET_GRADE_SCENARIOS",
+        scenarios: [...settings.gradeScenarios, scenario]
+      }).then(render);
+    });
+    node.append(form);
+
+    const actions = element("div", { className: "sc-cluster" });
+    const undo = element("button", { className: "sc-button-secondary", text: "Undo last change" });
+    undo.type = "button";
+    undo.disabled = gradeUndoSnapshot === null;
+    undo.addEventListener("click", () => {
+      if (!gradeUndoSnapshot) return;
+      const snapshot = gradeUndoSnapshot;
+      gradeUndoSnapshot = settings.gradeScenarios;
+      void mutateSettings({ kind: "SET_GRADE_SCENARIOS", scenarios: snapshot }).then(render);
+    });
+    const reset = element("button", { className: "sc-button-danger", text: "Reset all scenarios" });
+    reset.type = "button";
+    reset.disabled = settings.gradeScenarios.length === 0;
+    reset.addEventListener("click", () => {
+      gradeUndoSnapshot = settings.gradeScenarios;
+      void mutateSettings({ kind: "SET_GRADE_SCENARIOS", scenarios: [] }).then(render);
+    });
+    actions.append(undo, reset);
+    node.append(actions);
+
+    const list = element("div", { className: "sc-grade-scenarios" });
+    for (const scenario of settings.gradeScenarios) {
+      const result = evaluateGradeScenario(scenario);
+      const card = element("article", { className: "sc-card sc-stack" });
+      card.append(element("h3", { text: scenario.name }));
+      if (result.status === "unsupported") {
+        card.append(element("p", { className: "sc-message", text: result.explanation }));
+      } else {
+        const projected = result.projectedPercent?.toFixed(2) ?? "Unavailable";
+        const current = result.currentPercent?.toFixed(2) ?? "Unavailable";
+        card.append(
+          element("p", {
+            text: `Current ${current}% · Projected ${projected}% · Change ${result.comparisonPoints?.toFixed(2) ?? "—"} points`
+          }),
+          element("p", {
+            text:
+              result.neededScore === null
+                ? "Needed score unavailable."
+                : result.neededScore <= 0
+                  ? "The target is already met before the hypothetical item."
+                  : result.neededScore > scenario.hypotheticalPossible
+                    ? `Target would require ${result.neededScore.toFixed(2)} of ${scenario.hypotheticalPossible} points and is not reachable with this item alone.`
+                    : `Score needed for ${scenario.targetPercent}%: ${result.neededScore.toFixed(2)} of ${scenario.hypotheticalPossible} points.`
+          }),
+          element("p", { className: "sc-muted", text: result.explanation })
+        );
+      }
+      const remove = element("button", { className: "sc-button-danger", text: "Delete scenario" });
+      remove.type = "button";
+      remove.addEventListener("click", () => {
+        gradeUndoSnapshot = settings.gradeScenarios;
+        void mutateSettings({
+          kind: "SET_GRADE_SCENARIOS",
+          scenarios: settings.gradeScenarios.filter(({ id }) => id !== scenario.id)
+        }).then(render);
+      });
+      card.append(remove);
+      list.append(card);
+    }
+    node.append(list);
     return node;
   }
 
   for (const [courseId, preference] of courses) {
+    let currentPreference = preference;
+    const saveCourse = (
+      changes: Partial<typeof preference>,
+      confirmation: string
+    ): Promise<void> => {
+      currentPreference = { ...currentPreference, ...changes };
+      return mutateSettings({
+        courseId,
+        kind: "SET_COURSE",
+        preference: currentPreference
+      }).then(() => {
+        announce(confirmation);
+      });
+    };
     const row = element("div", { className: "sc-course-setting" });
     const nicknameField = element("div", { className: "sc-field" });
     const nicknameId = `course-${courseId.replaceAll(/[^a-z0-9-]/gi, "-")}`;
@@ -412,11 +597,7 @@ function coursesSection(settings: Settings): HTMLElement {
     nickname.value = preference.nickname;
     nickname.addEventListener("change", () => {
       const nextNickname = nickname.value.trim() || preference.nickname;
-      void mutateSettings({
-        courseId,
-        kind: "SET_COURSE",
-        preference: { ...preference, nickname: nextNickname }
-      }).then(() => announce(`${nextNickname} saved.`));
+      void saveCourse({ nickname: nextNickname }, `${nextNickname} saved.`);
     });
     nicknameField.append(nicknameLabel, nickname);
 
@@ -429,17 +610,84 @@ function coursesSection(settings: Settings): HTMLElement {
     color.type = "color";
     color.value = preference.accent;
     color.addEventListener("change", () => {
-      void mutateSettings({
-        courseId,
-        kind: "SET_COURSE",
-        preference: { ...preference, accent: color.value }
-      }).then(() => announce(`${preference.nickname} color saved.`));
+      void saveCourse({ accent: color.value }, `${currentPreference.nickname} color saved.`);
     });
     colorField.append(colorLabel, color);
-    row.append(nicknameField, colorField);
+
+    const favoriteLabel = element("label", { className: "sc-check" });
+    const favorite = element("input");
+    favorite.type = "checkbox";
+    favorite.checked = preference.favorite;
+    favorite.addEventListener("change", () => {
+      void saveCourse({ favorite: favorite.checked }, "Course favorite saved.");
+    });
+    favoriteLabel.append(favorite, element("span", { text: "Favorite course" }));
+
+    const hiddenLabel = element("label", { className: "sc-check" });
+    const hidden = element("input");
+    hidden.type = "checkbox";
+    hidden.checked = preference.hidden;
+    hidden.addEventListener("change", () => {
+      void saveCourse({ hidden: hidden.checked }, "Dashboard visibility saved.");
+    });
+    hiddenLabel.append(hidden, element("span", { text: "Hide detected dashboard card" }));
+
+    const orderField = element("div", { className: "sc-field" });
+    const orderLabel = element("label", { text: "Dashboard order" });
+    const order = element("input");
+    order.type = "number";
+    order.min = "0";
+    order.max = "999";
+    order.value = String(preference.order);
+    orderLabel.htmlFor = `${nicknameId}-order`;
+    order.id = `${nicknameId}-order`;
+    order.addEventListener("change", () => {
+      void saveCourse({ order: Number(order.value) }, "Dashboard order saved.");
+    });
+    orderField.append(orderLabel, order);
+
+    const quickLabelField = element("div", { className: "sc-field" });
+    const quickLabel = element("input");
+    quickLabel.maxLength = 40;
+    quickLabel.placeholder = "Quick link label";
+    quickLabel.value = preference.quickLinks[0]?.label ?? "";
+    const quickLabelText = element("label", { text: "Quick link label" });
+    quickLabelText.htmlFor = `${nicknameId}-quick-label`;
+    quickLabel.id = `${nicknameId}-quick-label`;
+    quickLabelField.append(quickLabelText, quickLabel);
+
+    const quickUrlField = element("div", { className: "sc-field" });
+    const quickUrl = element("input");
+    quickUrl.type = "url";
+    quickUrl.placeholder = "https://…";
+    quickUrl.value = preference.quickLinks[0]?.url ?? "";
+    const quickUrlLabel = element("label", { text: "Quick link URL" });
+    quickUrlLabel.htmlFor = `${nicknameId}-quick-url`;
+    quickUrl.id = `${nicknameId}-quick-url`;
+    quickUrlField.append(quickUrlLabel, quickUrl);
+    const saveQuickLink = (): void => {
+      const label = quickLabel.value.trim();
+      const url = quickUrl.value.trim();
+      const quickLinks =
+        label && url ? [{ label, url }, ...currentPreference.quickLinks.slice(1)] : [];
+      void saveCourse({ quickLinks }, "Course quick link saved.");
+    };
+    quickLabel.addEventListener("change", saveQuickLink);
+    quickUrl.addEventListener("change", saveQuickLink);
+
+    row.append(
+      nicknameField,
+      colorField,
+      favoriteLabel,
+      hiddenLabel,
+      orderField,
+      quickLabelField,
+      quickUrlField
+    );
     node.append(row);
   }
-  return node;
+  wrapper.append(gradeStudioSection(settings));
+  return wrapper;
 }
 
 function domainsSection(settings: Settings): HTMLElement {
@@ -584,6 +832,7 @@ async function render(): Promise<void> {
     ["#native", "Schoology page"],
     ["#workflow", "Today workflow"],
     ["#courses", "Courses"],
+    ["#grades", "Grade scenarios"],
     ["#compatibility", "Compatibility"],
     ["#privacy", "Privacy and data"]
   ];

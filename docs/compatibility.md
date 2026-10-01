@@ -8,7 +8,10 @@
 | Course pages                                        | Detection only       | URL contract tests                                     |
 | Materials pages                                     | Detection only       | URL contract tests                                     |
 | Grade pages                                         | Detection only       | URL contract tests                                     |
-| Assessments                                         | Not implemented      | Planned after real DOM evidence                        |
+| Course dashboard cards                              | Synthetic support    | Reversible workspace fixture tests                     |
+| Materials rows                                      | Synthetic support    | Known-layout adapter tests                             |
+| Assessments                                         | Synthetic support    | Fail-closed supported-control tests                    |
+| Grade scenario studio                               | Manual points only   | Calculation and unsupported-rule tests                 |
 | Firefox                                             | Not supported        | Deferred until Chrome behavior stabilizes              |
 
 “Synthetic support” is not a claim of production compatibility. Real adapter acceptance requires
@@ -19,6 +22,11 @@ Native customization detects each selector group independently. Unknown groups r
 original styling. Official grade, submission, missing, late, and other status classes are excluded
 from extension button/link selectors, but institution-specific status markup still requires manual
 verification.
+
+The grade studio deliberately does not read or edit native grade cells. Total-points scenarios are
+supported from user-entered values; weighted categories, dropped grades, extra credit, and automatic
+gradebook import remain explicitly unsupported until representative rules and sanitized fixtures are
+available.
 
 Within detected regions, a bounded observer checks links, tabs, headings, labels, buttons, and text
 against their effective rendered background, including transparent ancestors. It annotates only

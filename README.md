@@ -19,10 +19,15 @@ implementation and does not include SchoologyPlus source or assets.
   rails, controls, optional system-font families, spacing, width, borders, corners, and shadows.
 - Bounded automatic contrast correction for text and controls inside extension-touched native
   regions, including transparent and mixed-background descendants.
+- Course workspace favorites, reversible dashboard ordering/visibility, and local quick links.
+- Focus planning with user priorities and effort estimates, materials-page planning actions,
+  reliable assessment unanswered warnings, and explainable submission-state provenance.
+- A separate local grade scenario studio for verified total-points math, target-score calculations,
+  comparison, undo/reset, and explicit unsupported states for unverified rules.
 - Local export, validated import, reset, permission revocation, and no telemetry.
 
-Grade prediction, API credentials, notifications, background polling, and Firefox packaging are
-intentionally deferred.
+Automatic gradebook import, weighted/dropped/extra-credit simulation, API credentials,
+notifications, background polling, and Firefox packaging are intentionally deferred.
 
 ## Development
 

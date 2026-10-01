@@ -12,6 +12,9 @@ Chrome local extension storage may contain:
 - Approved custom Schoology domain names.
 - Detected course identifiers and names, plus private nicknames and colors.
 - Assignment identifiers marked complete in the private Today plan.
+- Local focus priorities and effort estimates.
+- Course favorites, dashboard order/visibility, and user-created quick links.
+- User-entered grade scenarios and points-based planning inputs.
 
 This data remains in the current Chrome profile and is not stored with `chrome.storage.sync`.
 Students can export, import, or delete it from the settings page.
@@ -38,6 +41,10 @@ and is never stored or transmitted.
 The current milestone does not request or store Schoology API credentials. Any future credential
 feature requires a separate security review, explicit consent, local-only storage, and deletion
 controls before release.
+
+Grade scenarios use values entered by the student and never edit or submit official Schoology
+grades. Assessment warnings inspect supported answer controls only at submit time and do not store
+answers.
 
 ## Diagnostics
 

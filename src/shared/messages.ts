@@ -1,4 +1,11 @@
-import type { CoursePreference, NativeCustomization, PageSnapshot, Settings } from "./models";
+import type {
+  CoursePreference,
+  FocusPlanEntry,
+  GradeScenario,
+  NativeCustomization,
+  PageSnapshot,
+  Settings
+} from "./models";
 
 export type SettingsMutation =
   | {
@@ -10,6 +17,8 @@ export type SettingsMutation =
   | { domain: string; kind: "REMOVE_DOMAIN" }
   | { courses: Record<string, CoursePreference>; kind: "ADD_COURSES" }
   | { courseId: string; kind: "SET_COURSE"; preference: CoursePreference }
+  | { entry: FocusPlanEntry | null; id: string; kind: "SET_FOCUS" }
+  | { kind: "SET_GRADE_SCENARIOS"; scenarios: GradeScenario[] }
   | { customization: NativeCustomization; kind: "SET_NATIVE" }
   | { kind: "REPLACE"; settings: Settings };
 
@@ -62,6 +71,15 @@ function isSettingsMutation(value: unknown): value is SettingsMutation {
         typeof value.customization === "object" &&
         value.customization !== null
       );
+    case "SET_FOCUS":
+      return (
+        "id" in value &&
+        typeof value.id === "string" &&
+        "entry" in value &&
+        (value.entry === null || typeof value.entry === "object")
+      );
+    case "SET_GRADE_SCENARIOS":
+      return "scenarios" in value && Array.isArray(value.scenarios);
     case "REPLACE":
       return "settings" in value && typeof value.settings === "object" && value.settings !== null;
     default:

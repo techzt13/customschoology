@@ -1,5 +1,5 @@
 import { element } from "../shared/dom";
-import type { Assignment, PageSnapshot, Settings } from "../shared/models";
+import type { Assignment, FocusPlanEntry, PageSnapshot, Settings } from "../shared/models";
 import { loadSettings, mutateSettings } from "../shared/storage";
 import { extractUpcoming } from "../schoology/upcoming-adapter";
 
@@ -13,8 +13,14 @@ function formattedDueDate(value?: string): string {
   }).format(new Date(value));
 }
 
-function sortedAssignments(assignments: Assignment[]): Assignment[] {
+function sortedAssignments(
+  assignments: Assignment[],
+  focusPlan: Settings["focusPlan"]
+): Assignment[] {
   return [...assignments].sort((left, right) => {
+    const leftPriority = focusPlan[left.id]?.priority ?? 99;
+    const rightPriority = focusPlan[right.id]?.priority ?? 99;
+    if (leftPriority !== rightPriority) return leftPriority - rightPriority;
     if (!left.dueAt) return 1;
     if (!right.dueAt) return -1;
     return Date.parse(left.dueAt) - Date.parse(right.dueAt);
@@ -62,7 +68,14 @@ export class TodayPanel {
         courses: Object.fromEntries(
           missingCourses.map(([courseId, courseName]) => [
             courseId,
-            { accent: this.#settings!.accent, nickname: courseName }
+            {
+              accent: this.#settings!.accent,
+              favorite: false,
+              hidden: false,
+              nickname: courseName,
+              order: 100,
+              quickLinks: []
+            }
           ])
         ),
         kind: "ADD_COURSES"
@@ -116,7 +129,10 @@ export class TodayPanel {
         })
       );
     } else {
-      for (const assignment of sortedAssignments(this.#snapshot.assignments)) {
+      for (const assignment of sortedAssignments(
+        this.#snapshot.assignments,
+        this.#settings?.focusPlan ?? {}
+      )) {
         list.append(this.#renderAssignment(assignment));
       }
     }
@@ -183,6 +199,10 @@ export class TodayPanel {
     if (assignment.officialStatus === "late" || assignment.officialStatus === "missing") {
       status.dataset.tone = "warning";
     }
+    status.title =
+      assignment.officialStatus === "unknown"
+        ? "No reliable submission state was detected. Verify the assignment in Schoology."
+        : "This indicator reflects the status text currently rendered by Schoology.";
 
     const completion = element("label", { className: "sc-check" });
     const checkbox = element("input");
@@ -194,8 +214,62 @@ export class TodayPanel {
     });
     completion.append(checkbox, completionText);
 
-    item.append(link, metadata, status, completion);
+    item.append(link, metadata, status, completion, this.#renderFocusControls(assignment));
     return item;
+  }
+
+  #renderFocusControls(assignment: Assignment): HTMLElement {
+    const wrapper = element("div", { className: "sc-focus-controls" });
+    const plan = this.#settings?.focusPlan[assignment.id];
+    const priorityLabel = element("label", { text: "Focus priority" });
+    const priority = element("select");
+    const priorityId = `focus-priority-${assignment.id.replaceAll(/[^a-z0-9]/gi, "-")}`;
+    priority.id = priorityId;
+    priorityLabel.htmlFor = priorityId;
+    const priorities: Array<[string, string]> = [
+      ["", "Not planned"],
+      ["1", "High"],
+      ["2", "Medium"],
+      ["3", "Low"]
+    ];
+    for (const [value, text] of priorities) {
+      const option = element("option", { text });
+      option.value = value;
+      option.selected = value === String(plan?.priority ?? "");
+      priority.append(option);
+    }
+
+    const effortLabel = element("label", { text: "Estimated effort" });
+    const effort = element("select");
+    const effortId = `focus-effort-${assignment.id.replaceAll(/[^a-z0-9]/gi, "-")}`;
+    effort.id = effortId;
+    effortLabel.htmlFor = effortId;
+    for (const minutes of [15, 30, 60, 90] as const) {
+      const option = element("option", { text: `${minutes} minutes` });
+      option.value = String(minutes);
+      option.selected = minutes === (plan?.effortMinutes ?? 30);
+      effort.append(option);
+    }
+    effort.disabled = !plan;
+
+    const savePlan = (): void => {
+      const priorityValue = Number(priority.value) as FocusPlanEntry["priority"];
+      const entry: FocusPlanEntry | null = priority.value
+        ? {
+            assignmentId: assignment.id,
+            effortMinutes: Number(effort.value) as FocusPlanEntry["effortMinutes"],
+            priority: priorityValue
+          }
+        : null;
+      effort.disabled = entry === null;
+      void mutateSettings({ entry, id: assignment.id, kind: "SET_FOCUS" }).then((settings) => {
+        this.#settings = settings;
+      });
+    };
+    priority.addEventListener("change", savePlan);
+    effort.addEventListener("change", savePlan);
+    wrapper.append(priorityLabel, priority, effortLabel, effort);
+    return wrapper;
   }
 
   async #setCompletion(id: string, completed: boolean, status: HTMLElement): Promise<void> {

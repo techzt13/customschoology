@@ -109,6 +109,8 @@ export function generateNativeThemeCss(
   ];
   if (customization.font !== "native") {
     rules.push(
+      "html.sc-native-customized .sc-course-quick-links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }",
+      "html.sc-native-customized .sc-course-quick-links a { border: 1px solid var(--sc-native-border); border-radius: var(--sc-native-radius); padding: 0.35rem 0.6rem; color: var(--sc-native-surface-link) !important; background: var(--sc-native-surface) !important; }",
       `html.sc-native-customized body { font-family: ${FONTS[customization.font]} !important; }`
     );
   }

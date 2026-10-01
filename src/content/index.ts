@@ -2,6 +2,9 @@ import { isRuntimeMessage, type RuntimeResponse } from "../shared/messages";
 import { loadSettings } from "../shared/storage";
 import { extractUpcoming } from "../schoology/upcoming-adapter";
 import { applyNativeCustomization, removeNativeCustomization } from "./native-customization";
+import { applyCourseWorkspace, removeCourseWorkspace } from "./course-workspace";
+import { installAssessmentWarning } from "./assessment-warning";
+import { installMaterialActions } from "./material-actions";
 import { existingTodayHost, TodayPanel } from "./today-panel";
 
 async function initialize(): Promise<void> {
@@ -9,13 +12,17 @@ async function initialize(): Promise<void> {
   const initialSnapshot = extractUpcoming(document, location);
   if (!initialSnapshot.capabilities.supported) {
     removeNativeCustomization();
+    removeCourseWorkspace();
     return;
   }
 
   let settings = await loadSettings();
   applyNativeCustomization(settings);
+  applyCourseWorkspace(settings);
+  installAssessmentWarning();
   const panel = new TodayPanel(initialSnapshot);
   await panel.initialize();
+  installMaterialActions(() => panel.open());
 
   let refreshTimer: number | undefined;
   const observer = new MutationObserver(() => {
@@ -23,6 +30,9 @@ async function initialize(): Promise<void> {
     refreshTimer = window.setTimeout(() => {
       panel.refresh();
       applyNativeCustomization(settings);
+      applyCourseWorkspace(settings);
+      installAssessmentWarning();
+      installMaterialActions(() => panel.open());
     }, 300);
   });
   observer.observe(document.body, { childList: true, subtree: true });
@@ -32,6 +42,7 @@ async function initialize(): Promise<void> {
     void loadSettings().then((next) => {
       settings = next;
       applyNativeCustomization(settings);
+      applyCourseWorkspace(settings);
     });
   });
 

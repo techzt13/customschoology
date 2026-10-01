@@ -332,6 +332,22 @@ a:focus-visible {
   color: var(--preview-link);
 }
 
+.sc-grade-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(10rem, 1fr));
+  gap: 0.75rem;
+}
+
+.sc-grade-form > button {
+  align-self: end;
+}
+
+.sc-grade-scenarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.75rem;
+}
+
 .sc-message {
   border-inline-start: 4px solid var(--sc-accent);
   padding: 0.75rem 1rem;
@@ -363,6 +379,10 @@ a:focus-visible {
 
   .sc-native-setting {
     grid-template-columns: 1fr auto;
+  }
+
+  .sc-grade-form {
+    grid-template-columns: 1fr;
   }
 
   .sc-native-setting > label {
@@ -451,6 +471,28 @@ a:focus-visible {
   width: 1.2rem;
   height: 1.2rem;
   accent-color: var(--sc-accent);
+}
+
+.sc-focus-controls {
+  display: grid;
+  grid-template-columns: auto minmax(7rem, 1fr);
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  border-top: 1px solid var(--sc-border);
+  padding-top: 0.65rem;
+}
+
+.sc-focus-controls label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.sc-focus-controls select {
+  min-height: 2.25rem;
+  border: 1px solid var(--sc-border);
+  border-radius: 0.55rem;
+  background: var(--sc-surface);
+  color: var(--sc-text);
 }
 
 @media (max-width: 32rem) {

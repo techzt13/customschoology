@@ -84,7 +84,7 @@ describe("normalizeDomain", () => {
         theme: "calm"
       });
 
-      expect(migrated.schemaVersion).toBe(2);
+      expect(migrated.schemaVersion).toBe(3);
       expect(migrated.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
       expect(migrated.accent).toBe("#123456");
     });
@@ -128,9 +128,49 @@ describe("normalizeDomain", () => {
         settings: typeof DEFAULT_SETTINGS;
         version: number;
       };
-      expect(exported.version).toBe(2);
-      expect(exported.settings.schemaVersion).toBe(2);
+      expect(exported.version).toBe(3);
+      expect(exported.settings.schemaVersion).toBe(3);
       expect(exported.settings.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
+    });
+
+    it("validates course workspace, focus plan, and grade scenario data", () => {
+      const parsed = parseSettings({
+        coursePreferences: {
+          "42": {
+            accent: "#123456",
+            favorite: true,
+            hidden: false,
+            nickname: "Biology",
+            order: 2,
+            quickLinks: [
+              { label: "Lab", url: "https://example.schoology.com/courses/42/materials" },
+              { label: "Unsafe", url: "javascript:alert(1)" }
+            ]
+          }
+        },
+        focusPlan: {
+          assignment: { effortMinutes: 30, priority: 1 },
+          invalid: { effortMinutes: 999, priority: 7 }
+        },
+        gradeScenarios: [
+          {
+            currentEarned: 80,
+            currentPossible: 100,
+            hypotheticalEarned: 15,
+            hypotheticalPossible: 20,
+            id: "one",
+            name: "Plan",
+            rule: "points",
+            targetPercent: 90
+          }
+        ]
+      });
+
+      expect(parsed.coursePreferences["42"]?.quickLinks).toHaveLength(1);
+      expect(parsed.focusPlan).toEqual({
+        assignment: { assignmentId: "assignment", effortMinutes: 30, priority: 1 }
+      });
+      expect(parsed.gradeScenarios).toHaveLength(1);
     });
   });
 });

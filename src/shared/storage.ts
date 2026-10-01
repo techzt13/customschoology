@@ -1,4 +1,10 @@
-import { DEFAULT_SETTINGS, type CoursePreference, type Settings } from "./models";
+import {
+  DEFAULT_SETTINGS,
+  type CoursePreference,
+  type FocusPlanEntry,
+  type GradeScenario,
+  type Settings
+} from "./models";
 import type { RuntimeResponse, SettingsMutation } from "./messages";
 import { sanitizeNativeCustomization } from "../schoology/customization/native-theme";
 
@@ -10,24 +16,55 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function validCoursePreference(value: unknown): value is CoursePreference {
-  return (
-    isRecord(value) &&
-    typeof value.nickname === "string" &&
-    value.nickname.length <= 80 &&
-    typeof value.accent === "string" &&
-    HEX_COLOR.test(value.accent)
-  );
+function safeQuickLinks(value: unknown): CoursePreference["quickLinks"] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isRecord)
+    .flatMap((link) => {
+      if (
+        typeof link.label !== "string" ||
+        link.label.trim().length === 0 ||
+        link.label.length > 40 ||
+        typeof link.url !== "string"
+      ) {
+        return [];
+      }
+      try {
+        const url = new URL(link.url);
+        return url.protocol === "https:" ? [{ label: link.label.trim(), url: url.href }] : [];
+      } catch {
+        return [];
+      }
+    })
+    .slice(0, 5);
 }
 
 function parseCoursePreferences(value: unknown): Record<string, CoursePreference> {
   if (!isRecord(value)) return {};
-  return Object.fromEntries(
-    Object.entries(value).filter((entry): entry is [string, CoursePreference] => {
-      const [key, preference] = entry;
-      return key.length <= 160 && validCoursePreference(preference);
-    })
-  );
+  const result: Record<string, CoursePreference> = {};
+  for (const [key, preference] of Object.entries(value)) {
+    if (key.length > 160 || !isRecord(preference)) continue;
+    if (
+      typeof preference.nickname !== "string" ||
+      preference.nickname.length > 80 ||
+      typeof preference.accent !== "string" ||
+      !HEX_COLOR.test(preference.accent)
+    ) {
+      continue;
+    }
+    result[key] = {
+      accent: preference.accent,
+      favorite: preference.favorite === true,
+      hidden: preference.hidden === true,
+      nickname: preference.nickname,
+      order:
+        typeof preference.order === "number" && Number.isInteger(preference.order)
+          ? Math.min(999, Math.max(0, preference.order))
+          : 100,
+      quickLinks: safeQuickLinks(preference.quickLinks)
+    };
+  }
+  return result;
 }
 
 function parseManualCompletions(value: unknown): Record<string, true> {
@@ -37,6 +74,75 @@ function parseManualCompletions(value: unknown): Record<string, true> {
       (entry): entry is [string, true] => entry[0].length <= 500 && entry[1] === true
     )
   );
+}
+
+function parseFocusPlan(value: unknown): Record<string, FocusPlanEntry> {
+  if (!isRecord(value)) return {};
+  const result: Record<string, FocusPlanEntry> = {};
+  for (const [id, entry] of Object.entries(value)) {
+    if (id.length > 500 || !isRecord(entry)) continue;
+    if (
+      ![15, 30, 60, 90].includes(Number(entry.effortMinutes)) ||
+      ![1, 2, 3].includes(Number(entry.priority))
+    ) {
+      continue;
+    }
+    result[id] = {
+      assignmentId: id,
+      effortMinutes: Number(entry.effortMinutes) as FocusPlanEntry["effortMinutes"],
+      priority: Number(entry.priority) as FocusPlanEntry["priority"]
+    };
+  }
+  return result;
+}
+
+function finiteNumber(value: unknown, minimum: number, maximum: number): number | null {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(maximum, Math.max(minimum, value))
+    : null;
+}
+
+function parseGradeScenarios(value: unknown): GradeScenario[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isRecord)
+    .flatMap((scenario) => {
+      const currentEarned = finiteNumber(scenario.currentEarned, 0, 1_000_000);
+      const currentPossible = finiteNumber(scenario.currentPossible, 0.01, 1_000_000);
+      const hypotheticalEarned = finiteNumber(scenario.hypotheticalEarned, 0, 1_000_000);
+      const hypotheticalPossible = finiteNumber(scenario.hypotheticalPossible, 0.01, 1_000_000);
+      const targetPercent = finiteNumber(scenario.targetPercent, 0, 100);
+      if (
+        typeof scenario.id !== "string" ||
+        scenario.id.length > 100 ||
+        typeof scenario.name !== "string" ||
+        scenario.name.trim().length === 0 ||
+        scenario.name.length > 80 ||
+        currentEarned === null ||
+        currentPossible === null ||
+        hypotheticalEarned === null ||
+        hypotheticalPossible === null ||
+        targetPercent === null
+      ) {
+        return [];
+      }
+      const rule = ["points", "weighted", "dropped", "extra-credit"].includes(String(scenario.rule))
+        ? (scenario.rule as GradeScenario["rule"])
+        : "points";
+      return [
+        {
+          currentEarned,
+          currentPossible,
+          hypotheticalEarned,
+          hypotheticalPossible,
+          id: scenario.id,
+          name: scenario.name.trim(),
+          rule,
+          targetPercent
+        }
+      ];
+    })
+    .slice(0, 20);
 }
 
 export function normalizeDomain(value: string): string | null {
@@ -79,10 +185,12 @@ export function parseSettings(value: unknown): Settings {
     coursePreferences: parseCoursePreferences(value.coursePreferences),
     density,
     enabledDomains,
+    focusPlan: parseFocusPlan(value.focusPlan),
+    gradeScenarios: parseGradeScenarios(value.gradeScenarios),
     manualCompletions: parseManualCompletions(value.manualCompletions),
     nativeCustomization: sanitizeNativeCustomization(value.nativeCustomization),
     panelEnabled: value.panelEnabled !== false,
-    schemaVersion: 2,
+    schemaVersion: 3,
     theme
   };
 }
@@ -129,6 +237,14 @@ export function applyMutation(current: Settings, mutation: SettingsMutation): Se
           [mutation.courseId]: mutation.preference
         }
       });
+    case "SET_FOCUS": {
+      const focusPlan = { ...current.focusPlan };
+      if (mutation.entry) focusPlan[mutation.id] = mutation.entry;
+      else delete focusPlan[mutation.id];
+      return parseSettings({ ...current, focusPlan });
+    }
+    case "SET_GRADE_SCENARIOS":
+      return parseSettings({ ...current, gradeScenarios: mutation.scenarios });
     case "SET_NATIVE":
       return parseSettings({
         ...current,
@@ -156,7 +272,7 @@ export async function exportLocalData(): Promise<string> {
       exportedAt: new Date().toISOString(),
       format: "schoology-companion-settings",
       settings,
-      version: 2
+      version: 3
     },
     null,
     2
