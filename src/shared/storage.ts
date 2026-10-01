@@ -3,7 +3,8 @@ import {
   type CoursePreference,
   type FocusPlanEntry,
   type GradeScenario,
-  type Settings
+  type Settings,
+  type ThemeCompatibilityReport
 } from "./models";
 import type { RuntimeResponse, SettingsMutation } from "./messages";
 import { sanitizeNativeCustomization } from "../schoology/customization/native-theme";
@@ -177,6 +178,20 @@ export function parseSettings(value: unknown): Settings {
     : [];
   const enabledDomains = [...new Set(normalizedDomains)].slice(0, 20);
 
+  const nativeInput = isRecord(value.nativeCustomization)
+    ? {
+        ...value.nativeCustomization,
+        tokens: {
+          ...(isRecord(value.nativeCustomization.tokens) ? value.nativeCustomization.tokens : {}),
+          ...(!isRecord(value.nativeCustomization.tokens) &&
+          typeof value.accent === "string" &&
+          HEX_COLOR.test(value.accent)
+            ? { accent: value.accent }
+            : {})
+        }
+      }
+    : value.nativeCustomization;
+
   return {
     accent:
       typeof value.accent === "string" && HEX_COLOR.test(value.accent)
@@ -188,9 +203,9 @@ export function parseSettings(value: unknown): Settings {
     focusPlan: parseFocusPlan(value.focusPlan),
     gradeScenarios: parseGradeScenarios(value.gradeScenarios),
     manualCompletions: parseManualCompletions(value.manualCompletions),
-    nativeCustomization: sanitizeNativeCustomization(value.nativeCustomization),
+    nativeCustomization: sanitizeNativeCustomization(nativeInput),
     panelEnabled: value.panelEnabled !== false,
-    schemaVersion: 3,
+    schemaVersion: 4,
     theme
   };
 }
@@ -198,6 +213,13 @@ export function parseSettings(value: unknown): Settings {
 export async function loadSettings(): Promise<Settings> {
   const result = await chrome.storage.local.get(SETTINGS_KEY);
   return parseSettings(result[SETTINGS_KEY]);
+}
+
+export async function loadThemeCompatibility(): Promise<ThemeCompatibilityReport | null> {
+  const result = await chrome.storage.local.get("themeCompatibility");
+  const report: unknown = result.themeCompatibility;
+  if (!isRecord(report) || !isRecord(report.detected) || !Array.isArray(report.themed)) return null;
+  return report as unknown as ThemeCompatibilityReport;
 }
 
 export async function saveSettings(settings: Settings): Promise<void> {
@@ -272,7 +294,7 @@ export async function exportLocalData(): Promise<string> {
       exportedAt: new Date().toISOString(),
       format: "schoology-companion-settings",
       settings,
-      version: 3
+      version: 4
     },
     null,
     2

@@ -3,15 +3,27 @@ import {
   DEFAULT_SETTINGS,
   type Density,
   type NativeCustomization,
+  type NativeThemeTokens,
   type Settings,
+  type ThemeCompatibilityReport,
   type ThemePreset
 } from "../shared/models";
-import { exportLocalData, importLocalData, loadSettings, mutateSettings } from "../shared/storage";
-import { originPattern } from "../schoology/url";
 import {
-  contrastRatio,
+  exportLocalData,
+  importLocalData,
+  loadSettings,
+  loadThemeCompatibility,
+  mutateSettings
+} from "../shared/storage";
+import { originPattern } from "../schoology/url";
+import { REGION_LABELS } from "../schoology/customization/selectors";
+import {
+  effectiveNativeTokens,
+  NATIVE_THEME_TOKEN_LABELS,
   resetNativeSetting,
-  safeTextColor
+  resetNativeToken,
+  resolveForeground,
+  tokenContrastDiagnostic
 } from "../schoology/customization/native-theme";
 import { evaluateGradeScenario } from "../domain/grade-planning";
 import type { GradeScenario } from "../shared/models";
@@ -174,32 +186,87 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
 
   const preview = element("div", { className: "sc-native-preview" });
   preview.setAttribute("aria-label", "Live Schoology customization preview");
-  const previewHeader = element("div", {
-    className: "sc-native-preview-header",
-    text: "Schoology"
-  });
+  const previewHeader = element("div", { className: "sc-native-preview-header" });
+  previewHeader.append(
+    element("strong", { text: "Institution Schoology" }),
+    element("button", { text: "Profile" })
+  );
+  const previewTabs = element("div", { className: "sc-native-preview-tabs" });
+  previewTabs.append(
+    element("a", { className: "is-active", text: "Course Dashboard" }),
+    element("a", { text: "Recent Activity" })
+  );
   const previewLayout = element("div", { className: "sc-native-preview-layout" });
-  const previewRail = element("div", { className: "sc-native-preview-rail", text: "Courses" });
+  const previewRail = element("div", {
+    className: "sc-native-preview-rail sc-native-preview-left",
+    text: "Courses"
+  });
   const previewCard = element("div", { className: "sc-native-preview-card" });
   const previewLink = element("a", { text: "Upcoming assignment" });
   previewLink.href = "#native";
   previewCard.append(
     element("strong", { text: "Course dashboard" }),
     previewLink,
-    element("button", { text: "Open course" })
+    element("button", { text: "Open course" }),
+    element("span", { className: "sc-native-preview-status", text: "Submitted (preserved)" })
   );
-  previewLayout.append(previewRail, previewCard);
-  preview.append(previewHeader, previewLayout);
+  const previewRight = element("div", {
+    className: "sc-native-preview-rail sc-native-preview-right",
+    text: "To Do · Quiz Friday"
+  });
+  previewLayout.append(previewRail, previewCard, previewRight);
+  preview.append(previewHeader, previewTabs, previewLayout);
 
-  const contrastNote = element("p", { className: "sc-muted" });
+  const contrastNote = element("p", { className: "sc-contrast-summary" });
   contrastNote.setAttribute("role", "status");
+  const diagnostics = new Map<keyof NativeThemeTokens, HTMLElement>();
 
   const updatePreview = (): void => {
-    preview.style.setProperty("--preview-bg", current.background);
-    preview.style.setProperty("--preview-surface", current.surface);
-    preview.style.setProperty("--preview-text", safeTextColor(current.text, current.surface));
-    preview.style.setProperty("--preview-accent", settings.accent);
-    preview.style.setProperty("--preview-link", safeTextColor(settings.accent, current.surface));
+    const tokens = effectiveNativeTokens(current);
+    const foreground = (requested: string, background: string, threshold = 4.5): string =>
+      resolveForeground(
+        requested,
+        background,
+        current.contrastMode,
+        [tokens.primaryText, tokens.mutedText, tokens.link, tokens.headerText],
+        threshold
+      ).resolved;
+    preview.dataset.contrastMode = current.contrastMode;
+    preview.style.setProperty("--preview-bg", tokens.pageBackground);
+    preview.style.setProperty("--preview-surface", tokens.primarySurface);
+    preview.style.setProperty("--preview-elevated", tokens.elevatedSurface);
+    preview.style.setProperty(
+      "--preview-text",
+      foreground(tokens.primaryText, tokens.primarySurface)
+    );
+    preview.style.setProperty(
+      "--preview-muted",
+      foreground(tokens.mutedText, tokens.primarySurface)
+    );
+    preview.style.setProperty("--preview-accent", tokens.accent);
+    preview.style.setProperty("--preview-header", tokens.headerBackground);
+    preview.style.setProperty(
+      "--preview-header-text",
+      foreground(tokens.headerText, tokens.headerBackground)
+    );
+    preview.style.setProperty("--preview-left-rail", tokens.leftRail);
+    preview.style.setProperty("--preview-right-rail", tokens.rightRail);
+    preview.style.setProperty("--preview-control", tokens.control);
+    preview.style.setProperty(
+      "--preview-control-text",
+      foreground(tokens.primaryText, tokens.control)
+    );
+    preview.style.setProperty("--preview-border", tokens.border);
+    preview.style.setProperty("--preview-focus", tokens.focusRing);
+    preview.style.setProperty("--preview-link", foreground(tokens.link, tokens.elevatedSurface));
+    preview.style.setProperty(
+      "--preview-active-tab",
+      foreground(tokens.activeTab, tokens.primarySurface)
+    );
+    preview.style.setProperty(
+      "--preview-inactive-tab",
+      foreground(tokens.inactiveTab, tokens.primarySurface)
+    );
     preview.style.setProperty(
       "--preview-font",
       current.font === "serif"
@@ -221,11 +288,27 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
       current.shadow === "subtle" ? "0 8px 24px rgb(20 28 45 / 12%)" : "none"
     );
     preview.hidden = !current.enabled;
-    const ratio = contrastRatio(current.text, current.surface);
+    let failures = 0;
+    let substitutions = 0;
+    for (const [key, output] of diagnostics) {
+      const diagnostic = tokenContrastDiagnostic(current, key);
+      if (!diagnostic.meets) failures += 1;
+      if (diagnostic.requested !== diagnostic.resolved) substitutions += 1;
+      output.dataset.warning = String(!diagnostic.meets);
+      output.textContent =
+        diagnostic.requested === diagnostic.resolved
+          ? `${diagnostic.resolved} · ${diagnostic.ratio.toFixed(1)}:1`
+          : `${diagnostic.requested} → ${diagnostic.resolved} · ${diagnostic.ratio.toFixed(1)}:1`;
+    }
+    contrastNote.dataset.warning = String(failures > 0);
     contrastNote.textContent =
-      ratio >= 4.5
-        ? `Text contrast ${ratio.toFixed(1)}:1 meets the readability safeguard.`
-        : `Requested text contrast is ${ratio.toFixed(1)}:1; Schoology will use a safer black or white text color.`;
+      current.contrastMode === "automatic"
+        ? `${substitutions} color${substitutions === 1 ? "" : "s"} visibly resolved to meet WCAG AA in this preview.`
+        : current.contrastMode === "high-contrast"
+          ? "The complete high-contrast preset is active; saved custom colors are retained for another mode."
+          : failures > 0
+            ? `${failures} strong contrast warning${failures === 1 ? "" : "s"}. Chosen colors are preserved and may be unreadable.`
+            : "All reported semantic combinations meet their WCAG thresholds.";
   };
 
   const save = (next: NativeCustomization, confirmation: string): Promise<void> => {
@@ -271,20 +354,36 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     void save({ ...current, enabled: enabled.checked }, "Native Schoology customization saved.");
   });
 
-  const colorControl = (
-    key: "background" | "surface" | "text" | "border",
-    label: string
-  ): HTMLElement => {
+  const colorControl = (key: keyof NativeThemeTokens): HTMLElement => {
+    const wrapper = element("div", { className: "sc-native-token" });
+    const label = element("label", { text: NATIVE_THEME_TOKEN_LABELS[key] });
     const input = element("input");
     input.type = "color";
-    input.value = current[key];
-    input.addEventListener("input", () => {
-      void save({ ...current, [key]: input.value }, `${label} saved.`);
+    input.id = `native-token-${key}`;
+    label.htmlFor = input.id;
+    input.value = current.tokens[key];
+    const diagnostic = element("small", { className: "sc-token-diagnostic" });
+    diagnostic.setAttribute("aria-live", "polite");
+    diagnostics.set(key, diagnostic);
+    const reset = element("button", { className: "sc-button-secondary", text: "Reset" });
+    reset.type = "button";
+    reset.setAttribute("aria-label", `Reset ${NATIVE_THEME_TOKEN_LABELS[key]}`);
+    reset.addEventListener("click", () => {
+      const next = resetNativeToken(current, key);
+      input.value = next.tokens[key];
+      void save(next, `${NATIVE_THEME_TOKEN_LABELS[key]} reset.`);
     });
-    return row(key, label, input);
+    input.addEventListener("input", () => {
+      void save(
+        { ...current, tokens: { ...current.tokens, [key]: input.value } },
+        `${NATIVE_THEME_TOKEN_LABELS[key]} saved.`
+      );
+    });
+    wrapper.append(label, input, diagnostic, reset);
+    return wrapper;
   };
 
-  const selectControl = <K extends "font" | "contentWidth" | "corners" | "shadow">(
+  const selectControl = <K extends "contrastMode" | "font" | "contentWidth" | "corners" | "shadow">(
     key: K,
     label: string,
     values: Array<[NativeCustomization[K], string]>
@@ -327,14 +426,51 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     ).then(render);
   });
 
+  const resetColors = element("button", {
+    className: "sc-button-secondary",
+    text: "Reset semantic colors"
+  });
+  resetColors.type = "button";
+  resetColors.addEventListener("click", () => {
+    void save(
+      { ...current, tokens: structuredClone(DEFAULT_SETTINGS.nativeCustomization.tokens) },
+      "Semantic colors reset."
+    ).then(render);
+  });
+
+  const resetLayout = element("button", {
+    className: "sc-button-secondary",
+    text: "Reset layout and visibility"
+  });
+  resetLayout.type = "button";
+  resetLayout.addEventListener("click", () => {
+    const defaults = DEFAULT_SETTINGS.nativeCustomization;
+    void save(
+      {
+        ...current,
+        contentWidth: defaults.contentWidth,
+        corners: defaults.corners,
+        font: defaults.font,
+        hideFooter: defaults.hideFooter,
+        hideLeftRail: defaults.hideLeftRail,
+        hideRightRail: defaults.hideRightRail,
+        shadow: defaults.shadow
+      },
+      "Layout and visibility reset."
+    ).then(render);
+  });
+
   node.append(
     row("enabled", "Customize native Schoology pages", enabled),
+    selectControl("contrastMode", "Contrast mode", [
+      ["automatic", "Automatic WCAG AA (recommended)"],
+      ["preserve", "Preserve chosen colors with warnings"],
+      ["high-contrast", "High contrast"],
+      ["manual", "Manual advanced"]
+    ]),
     preview,
     contrastNote,
-    colorControl("background", "Page background"),
-    colorControl("surface", "Content surface"),
-    colorControl("text", "Text color"),
-    colorControl("border", "Border color"),
+    ...(Object.keys(NATIVE_THEME_TOKEN_LABELS) as Array<keyof NativeThemeTokens>).map(colorControl),
     selectControl("font", "System font family", [
       ["native", "Schoology default"],
       ["system", "System"],
@@ -359,8 +495,11 @@ function nativeCustomizationSection(settings: Settings): HTMLElement {
     visibilityControl("hideLeftRail", "Hide left rail when detected"),
     visibilityControl("hideRightRail", "Hide right rail when detected"),
     visibilityControl("hideFooter", "Hide footer when detected"),
+    element("div", { className: "sc-cluster" }),
     resetAll
   );
+  const resetCluster = node.querySelector<HTMLElement>(".sc-cluster:last-of-type");
+  resetCluster?.append(resetColors, resetLayout);
   updatePreview();
   return node;
 }
@@ -690,11 +829,65 @@ function coursesSection(settings: Settings): HTMLElement {
   return wrapper;
 }
 
-function domainsSection(settings: Settings): HTMLElement {
+function domainsSection(
+  settings: Settings,
+  compatibility: ThemeCompatibilityReport | null
+): HTMLElement {
   const node = section(
     "compatibility",
-    "Compatibility",
-    "Custom Schoology domains are enabled only after you grant access from the toolbar popup."
+    "Compatibility and themed regions",
+    "See exactly what the extension recognized on the most recently visited Schoology page. Unknown regions remain native."
+  );
+  if (!compatibility) {
+    node.append(
+      element("p", {
+        className: "sc-message",
+        text: "No page-region report is available yet. Visit a supported Schoology page, then return here."
+      })
+    );
+  } else {
+    const grid = element("div", { className: "sc-compatibility-grid" });
+    const reportList = (title: string, items: string[], tone = ""): HTMLElement => {
+      const card = element("div", { className: `sc-card sc-stack ${tone}`.trim() });
+      card.append(element("h3", { text: title }));
+      const list = element("ul");
+      for (const item of items) list.append(element("li", { text: item }));
+      card.append(list);
+      return card;
+    };
+    grid.append(
+      reportList(
+        "Detected and themed",
+        compatibility.themed.length
+          ? compatibility.themed.map(
+              (region) => `${REGION_LABELS[region]} (${compatibility.detected[region] ?? 0})`
+            )
+          : ["No recognizable theme regions detected."]
+      ),
+      reportList("Preserved as native", compatibility.nativePreserved),
+      reportList(
+        "Unsupported on this page",
+        compatibility.unsupported.length
+          ? compatibility.unsupported
+          : ["All expected shell regions were recognized."],
+        compatibility.unsupported.length ? "sc-compatibility-warning" : ""
+      )
+    );
+    node.append(
+      grid,
+      element("p", {
+        className: "sc-muted",
+        text: `Last updated ${new Date(compatibility.updatedAt).toLocaleString()}.`
+      })
+    );
+  }
+
+  node.append(
+    element("h3", { text: "Custom-domain access" }),
+    element("p", {
+      className: "sc-muted",
+      text: "Custom Schoology domains are enabled only after you grant access from the toolbar popup."
+    })
   );
   if (settings.enabledDomains.length === 0) {
     node.append(
@@ -803,7 +996,7 @@ function privacySection(): HTMLElement {
 }
 
 async function render(): Promise<void> {
-  const settings = await loadSettings();
+  const [settings, compatibility] = await Promise.all([loadSettings(), loadThemeCompatibility()]);
   applyAppearance(settings);
   app.replaceChildren();
   app.className = "sc-options";
@@ -848,7 +1041,7 @@ async function render(): Promise<void> {
     nativeCustomizationSection(settings),
     workflowSection(settings),
     coursesSection(settings),
-    domainsSection(settings),
+    domainsSection(settings, compatibility),
     privacySection()
   );
   layout.append(nav, content);

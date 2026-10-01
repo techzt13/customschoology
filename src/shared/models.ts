@@ -4,11 +4,30 @@ export type NativeFont = "native" | "system" | "humanist" | "rounded" | "serif";
 export type NativeContentWidth = "default" | "focused" | "wide";
 export type NativeCorners = "schoology" | "soft" | "round";
 export type NativeShadow = "none" | "subtle";
+export type NativeContrastMode = "automatic" | "preserve" | "high-contrast" | "manual";
+
+export interface NativeThemeTokens {
+  accent: string;
+  activeTab: string;
+  border: string;
+  control: string;
+  elevatedSurface: string;
+  focusRing: string;
+  headerBackground: string;
+  headerText: string;
+  inactiveTab: string;
+  leftRail: string;
+  link: string;
+  mutedText: string;
+  pageBackground: string;
+  primarySurface: string;
+  primaryText: string;
+  rightRail: string;
+}
 
 export interface NativeCustomization {
-  background: string;
-  border: string;
   contentWidth: NativeContentWidth;
+  contrastMode: NativeContrastMode;
   corners: NativeCorners;
   enabled: boolean;
   font: NativeFont;
@@ -16,8 +35,29 @@ export interface NativeCustomization {
   hideLeftRail: boolean;
   hideRightRail: boolean;
   shadow: NativeShadow;
-  surface: string;
-  text: string;
+  tokens: NativeThemeTokens;
+}
+
+export type NativeThemeRegion =
+  | "institution-header"
+  | "dashboard-tabs"
+  | "page-canvas"
+  | "dashboard-grid"
+  | "course-card"
+  | "course-card-content"
+  | "left-rail"
+  | "right-rail"
+  | "surface"
+  | "modal"
+  | "popover"
+  | "footer";
+
+export interface ThemeCompatibilityReport {
+  detected: Partial<Record<NativeThemeRegion, number>>;
+  nativePreserved: string[];
+  themed: NativeThemeRegion[];
+  unsupported: string[];
+  updatedAt: string;
 }
 
 export interface CoursePreference {
@@ -56,7 +96,7 @@ export interface Settings {
   manualCompletions: Record<string, true>;
   nativeCustomization: NativeCustomization;
   panelEnabled: boolean;
-  schemaVersion: 3;
+  schemaVersion: 4;
   theme: ThemePreset;
 }
 
@@ -92,9 +132,8 @@ export const DEFAULT_SETTINGS: Settings = {
   gradeScenarios: [],
   manualCompletions: {},
   nativeCustomization: {
-    background: "#f6f7fb",
-    border: "#d8dce6",
     contentWidth: "default",
+    contrastMode: "automatic",
     corners: "soft",
     enabled: true,
     font: "native",
@@ -102,10 +141,26 @@ export const DEFAULT_SETTINGS: Settings = {
     hideLeftRail: false,
     hideRightRail: false,
     shadow: "subtle",
-    surface: "#ffffff",
-    text: "#1c2230"
+    tokens: {
+      accent: "#5b4ee4",
+      activeTab: "#3327b8",
+      border: "#d8dce6",
+      control: "#ffffff",
+      elevatedSurface: "#ffffff",
+      focusRing: "#0b6bcb",
+      headerBackground: "#283142",
+      headerText: "#ffffff",
+      inactiveTab: "#5f687a",
+      leftRail: "#f0f2f7",
+      link: "#4338ca",
+      mutedText: "#5f687a",
+      pageBackground: "#f6f7fb",
+      primarySurface: "#ffffff",
+      primaryText: "#1c2230",
+      rightRail: "#ffffff"
+    }
   },
   panelEnabled: true,
-  schemaVersion: 3,
+  schemaVersion: 4,
   theme: "system"
 };

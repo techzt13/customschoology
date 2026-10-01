@@ -11,5 +11,6 @@ The extension does not request persistent broad `host_permissions`, `tabs`, cook
 notifications, clipboard, web request, or background alarms.
 
 Native Schoology customization uses the existing content-script access and does not add a
-permission. Styles are generated locally from validated settings and scoped beneath the
-extension-owned `sc-native-customized` root class.
+permission. Styles are generated locally from validated settings and target only extension-owned
+region/role annotations beneath `sc-native-customized`. The compatibility panel reads a local
+region-count report through the existing `storage` permission.

@@ -38,25 +38,41 @@ test("content script preserves native geometry and enhances supported workflows"
     await expect(companion.getByRole("link", { name: "Reflection" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Plan Reflection in Today" })).toBeVisible();
 
-    const recentTab = page.locator("#recent-tab");
-    await expect(recentTab).toHaveClass(/sc-native-auto-contrast/);
+    await expect(page.locator("#header")).toHaveAttribute("data-sc-region", "institution-header");
+    await expect(page.locator(".tabs")).toHaveAttribute("data-sc-region", "dashboard-tabs");
+    await expect(page.locator(".course-dashboard")).toHaveAttribute(
+      "data-sc-region",
+      "dashboard-grid"
+    );
+    await expect(page.locator(".course-card")).toHaveAttribute("data-sc-region", "course-card");
+    await expect(page.locator("#right-column")).toHaveAttribute("data-sc-region", "right-rail");
+    await expect(page.locator("#recent-tab")).toHaveAttribute("data-sc-theme-role", "tab-inactive");
+    await expect(page.locator("#dashboard-tab")).toHaveAttribute(
+      "data-sc-theme-role",
+      "tab-active"
+    );
+    await expect(page.locator("#header")).toHaveCSS("background-color", "rgb(40, 49, 66)");
+    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(246, 247, 251)");
+    await expect(page.locator("#header img")).not.toHaveAttribute("data-sc-theme-role");
     const rootFontSize = await page
       .locator("html")
       .evaluate((element) => getComputedStyle(element).fontSize);
     expect(rootFontSize).toBe("16px");
 
-    await page.locator("#header").evaluate((header) => {
-      const wrapper = document.createElement("div");
-      wrapper.style.background = "rgb(250, 250, 250)";
+    await page.locator(".tabs").evaluate((tabs) => {
       const tab = document.createElement("a");
       tab.id = "dynamic-tab";
       tab.role = "tab";
+      tab.setAttribute("aria-selected", "false");
       tab.style.color = "white";
       tab.textContent = "New tab";
-      wrapper.append(tab);
-      header.append(wrapper);
+      tabs.append(tab);
     });
-    await expect(page.locator("#dynamic-tab")).toHaveClass(/sc-native-auto-contrast/);
+    await expect(page.locator("#dynamic-tab")).toHaveAttribute(
+      "data-sc-theme-role",
+      "tab-inactive"
+    );
+    await expect(page.locator("#dynamic-tab")).toHaveCSS("color", "rgb(95, 104, 122)");
 
     const worker = context.serviceWorkers()[0]!;
     await worker.evaluate(async () => {
@@ -81,6 +97,59 @@ test("content script preserves native geometry and enhances supported workflows"
     });
     await expect(page.getByRole("link", { name: "Lab notes" })).toBeVisible();
     await expect(page.locator(".course-card")).toHaveCSS("order", "2");
+
+    const compatibility = await worker.evaluate(async () => {
+      const stored = await chrome.storage.local.get("themeCompatibility");
+      return stored.themeCompatibility as {
+        nativePreserved: string[];
+        themed: string[];
+        unsupported: string[];
+      };
+    });
+    expect(compatibility.themed).toEqual(
+      expect.arrayContaining([
+        "institution-header",
+        "dashboard-tabs",
+        "dashboard-grid",
+        "course-card",
+        "right-rail"
+      ])
+    );
+    expect(compatibility.nativePreserved).toContain("Logos and course images");
+
+    const screenshot = await page.screenshot({
+      fullPage: true,
+      path: testInfo.outputPath("full-shell-theme.png")
+    });
+    expect(screenshot.byteLength).toBeGreaterThan(1_000);
+    await page.setViewportSize({ height: 900, width: 640 });
+    const narrowScreenshot = await page.screenshot({
+      fullPage: true,
+      path: testInfo.outputPath("full-shell-theme-narrow.png")
+    });
+    expect(narrowScreenshot.byteLength).toBeGreaterThan(1_000);
+
+    await worker.evaluate(async () => {
+      const stored = await chrome.storage.local.get("settings");
+      const settings = stored.settings as {
+        nativeCustomization: { contrastMode: string };
+      };
+      settings.nativeCustomization.contrastMode = "high-contrast";
+      await chrome.storage.local.set({ settings });
+    });
+    await expect(page.locator("#header")).toHaveCSS("background-color", "rgb(0, 0, 0)");
+
+    await worker.evaluate(async () => {
+      const stored = await chrome.storage.local.get("settings");
+      const settings = stored.settings as {
+        nativeCustomization: { enabled: boolean };
+      };
+      settings.nativeCustomization.enabled = false;
+      await chrome.storage.local.set({ settings });
+    });
+    await expect(page.locator("#header")).not.toHaveAttribute("data-sc-region");
+    await expect(page.locator("html")).not.toHaveClass(/sc-native-customized/);
+    await expect(page.locator("#schoology-companion-native-theme")).toHaveCount(0);
 
     await page.goto("https://example.schoology.com/assessment/9");
     await page.locator("#assessment-form").evaluate((form) => {

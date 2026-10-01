@@ -1,17 +1,14 @@
 import {
   DEFAULT_SETTINGS,
+  type NativeContrastMode,
   type NativeCustomization,
   type NativeContentWidth,
   type NativeCorners,
   type NativeFont,
-  type NativeShadow
+  type NativeShadow,
+  type NativeThemeRegion,
+  type NativeThemeTokens
 } from "../../shared/models";
-import {
-  NON_STATUS_LINK,
-  scopedDescendants,
-  scopedSelectors,
-  type SelectorGroup
-} from "./selectors";
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const FONTS: Record<Exclude<NativeFont, "native">, string> = {
@@ -35,20 +32,96 @@ const SHADOWS: Record<NativeShadow, string> = {
   subtle: "0 8px 24px rgb(20 28 45 / 10%)"
 };
 
+export const NATIVE_THEME_TOKEN_LABELS: Record<keyof NativeThemeTokens, string> = {
+  accent: "Accent",
+  activeTab: "Active tab text",
+  border: "Borders",
+  control: "Controls",
+  elevatedSurface: "Elevated and card surface",
+  focusRing: "Focus ring",
+  headerBackground: "Header and navigation background",
+  headerText: "Header and navigation text",
+  inactiveTab: "Inactive tab text",
+  leftRail: "Left rail",
+  link: "Links",
+  mutedText: "Muted text",
+  pageBackground: "Page background",
+  primarySurface: "Primary surface",
+  primaryText: "Primary text",
+  rightRail: "Right and To Do rail"
+};
+
+export const HIGH_CONTRAST_TOKENS: NativeThemeTokens = {
+  accent: "#005fcc",
+  activeTab: "#000000",
+  border: "#000000",
+  control: "#ffffff",
+  elevatedSurface: "#ffffff",
+  focusRing: "#ff3b00",
+  headerBackground: "#000000",
+  headerText: "#ffffff",
+  inactiveTab: "#303030",
+  leftRail: "#ffffff",
+  link: "#0047a8",
+  mutedText: "#303030",
+  pageBackground: "#ffffff",
+  primarySurface: "#ffffff",
+  primaryText: "#000000",
+  rightRail: "#ffffff"
+};
+
+export interface ContrastDiagnostic {
+  background: string;
+  meets: boolean;
+  ratio: number;
+  requested: string;
+  resolved: string;
+  threshold: number;
+}
+
 function choice<T extends string>(value: unknown, choices: readonly T[], fallback: T): T {
   return typeof value === "string" && choices.includes(value as T) ? (value as T) : fallback;
+}
+
+function sanitizeTokens(value: unknown, legacy: Record<string, unknown>): NativeThemeTokens {
+  const defaults = DEFAULT_SETTINGS.nativeCustomization.tokens;
+  const input =
+    typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+  const color = (key: keyof NativeThemeTokens, legacyKey?: string): string => {
+    const candidate = input[key] ?? (legacyKey ? legacy[legacyKey] : undefined);
+    return typeof candidate === "string" && HEX.test(candidate) ? candidate : defaults[key];
+  };
+  return {
+    accent: color("accent"),
+    activeTab: color("activeTab"),
+    border: color("border", "border"),
+    control: color("control"),
+    elevatedSurface: color("elevatedSurface", "surface"),
+    focusRing: color("focusRing"),
+    headerBackground: color("headerBackground"),
+    headerText: color("headerText"),
+    inactiveTab: color("inactiveTab"),
+    leftRail: color("leftRail"),
+    link: color("link"),
+    mutedText: color("mutedText"),
+    pageBackground: color("pageBackground", "background"),
+    primarySurface: color("primarySurface", "surface"),
+    primaryText: color("primaryText", "text"),
+    rightRail: color("rightRail", "surface")
+  };
 }
 
 export function sanitizeNativeCustomization(value: unknown): NativeCustomization {
   const defaults = DEFAULT_SETTINGS.nativeCustomization;
   if (typeof value !== "object" || value === null) return structuredClone(defaults);
   const input = value as Record<string, unknown>;
-  const color = (key: "background" | "border" | "surface" | "text"): string =>
-    typeof input[key] === "string" && HEX.test(input[key]) ? input[key] : defaults[key];
   return {
-    background: color("background"),
-    border: color("border"),
     contentWidth: choice(input.contentWidth, ["default", "focused", "wide"], defaults.contentWidth),
+    contrastMode: choice<NativeContrastMode>(
+      input.contrastMode,
+      ["automatic", "preserve", "high-contrast", "manual"],
+      defaults.contrastMode
+    ),
     corners: choice(input.corners, ["schoology", "soft", "round"], defaults.corners),
     enabled: input.enabled !== false,
     font: choice(input.font, ["native", "system", "humanist", "rounded", "serif"], defaults.font),
@@ -56,8 +129,7 @@ export function sanitizeNativeCustomization(value: unknown): NativeCustomization
     hideLeftRail: input.hideLeftRail === true,
     hideRightRail: input.hideRightRail === true,
     shadow: choice(input.shadow, ["none", "subtle"], defaults.shadow),
-    surface: color("surface"),
-    text: color("text")
+    tokens: sanitizeTokens(input.tokens, input)
   };
 }
 
@@ -74,95 +146,288 @@ export function contrastRatio(foreground: string, background: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+export function resolveForeground(
+  requested: string,
+  background: string,
+  mode: NativeContrastMode,
+  alternatives: readonly string[] = [],
+  threshold = 4.5
+): ContrastDiagnostic {
+  const requestedRatio = contrastRatio(requested, background);
+  if (mode !== "automatic" || requestedRatio >= threshold) {
+    return {
+      background,
+      meets: requestedRatio >= threshold,
+      ratio: requestedRatio,
+      requested,
+      resolved: requested,
+      threshold
+    };
+  }
+  const candidates = [...new Set([...alternatives, "#000000", "#ffffff"])]
+    .filter((candidate) => HEX.test(candidate))
+    .map((candidate) => ({ candidate, ratio: contrastRatio(candidate, background) }))
+    .sort((left, right) => right.ratio - left.ratio);
+  const selected = candidates.find(({ ratio }) => ratio >= threshold) ?? candidates[0]!;
+  return {
+    background,
+    meets: selected.ratio >= threshold,
+    ratio: selected.ratio,
+    requested,
+    resolved: selected.candidate,
+    threshold
+  };
+}
+
 export function safeTextColor(requested: string, background: string, minimumRatio = 4.5): string {
-  if (contrastRatio(requested, background) >= minimumRatio) return requested;
-  return contrastRatio("#000000", background) >= contrastRatio("#ffffff", background)
-    ? "#000000"
-    : "#ffffff";
+  return resolveForeground(requested, background, "automatic", [], minimumRatio).resolved;
+}
+
+export function effectiveNativeTokens(customization: NativeCustomization): NativeThemeTokens {
+  return customization.contrastMode === "high-contrast"
+    ? structuredClone(HIGH_CONTRAST_TOKENS)
+    : structuredClone(customization.tokens);
+}
+
+const TOKEN_BACKGROUNDS: Record<keyof NativeThemeTokens, keyof NativeThemeTokens> = {
+  accent: "primarySurface",
+  activeTab: "primarySurface",
+  border: "primarySurface",
+  control: "primarySurface",
+  elevatedSurface: "primaryText",
+  focusRing: "primarySurface",
+  headerBackground: "headerText",
+  headerText: "headerBackground",
+  inactiveTab: "primarySurface",
+  leftRail: "primaryText",
+  link: "primarySurface",
+  mutedText: "primarySurface",
+  pageBackground: "primaryText",
+  primarySurface: "primaryText",
+  primaryText: "primarySurface",
+  rightRail: "primaryText"
+};
+
+export function tokenContrastDiagnostic(
+  customization: NativeCustomization,
+  key: keyof NativeThemeTokens
+): ContrastDiagnostic {
+  const tokens = effectiveNativeTokens(customization);
+  const backgroundKey = TOKEN_BACKGROUNDS[key];
+  const foregroundKeys: ReadonlySet<keyof NativeThemeTokens> = new Set([
+    "accent",
+    "activeTab",
+    "border",
+    "focusRing",
+    "headerText",
+    "inactiveTab",
+    "link",
+    "mutedText",
+    "primaryText"
+  ]);
+  const threshold = key === "border" || key === "focusRing" ? 3 : 4.5;
+  if (foregroundKeys.has(key)) {
+    return resolveForeground(
+      tokens[key],
+      tokens[backgroundKey],
+      customization.contrastMode,
+      [tokens.primaryText, tokens.mutedText, tokens.link, tokens.headerText],
+      threshold
+    );
+  }
+  const pairedText = key === "headerBackground" ? tokens.headerText : tokens.primaryText;
+  const paired = resolveForeground(
+    pairedText,
+    tokens[key],
+    customization.contrastMode,
+    [tokens.mutedText, tokens.link, tokens.headerText],
+    4.5
+  );
+  return {
+    ...paired,
+    requested: tokens[key],
+    resolved: tokens[key]
+  };
 }
 
 export function resetNativeSetting<K extends keyof NativeCustomization>(
   current: NativeCustomization,
   key: K
 ): NativeCustomization {
-  return { ...current, [key]: DEFAULT_SETTINGS.nativeCustomization[key] };
+  return { ...current, [key]: structuredClone(DEFAULT_SETTINGS.nativeCustomization[key]) };
+}
+
+export function resetNativeToken(
+  current: NativeCustomization,
+  key: keyof NativeThemeTokens
+): NativeCustomization {
+  return {
+    ...current,
+    tokens: { ...current.tokens, [key]: DEFAULT_SETTINGS.nativeCustomization.tokens[key] }
+  };
+}
+
+function regionRule(
+  region: NativeThemeRegion,
+  background: string,
+  text: string,
+  link: string,
+  extra = "",
+  paintText = true
+): string {
+  return `html.sc-native-customized [data-sc-region="${region}"] { --sc-region-bg: ${background}; --sc-region-text: ${text}; --sc-region-link: ${link}; background-color: var(--sc-region-bg) !important; ${paintText ? "color: var(--sc-region-text) !important;" : ""} ${extra} }`;
 }
 
 export function generateNativeThemeCss(
   customization: NativeCustomization,
-  accent: string,
   density: "comfortable" | "compact",
-  supported: ReadonlySet<SelectorGroup>
+  supported: ReadonlySet<NativeThemeRegion>
 ): string {
   if (!customization.enabled) return "";
-  const surfaceText = safeTextColor(customization.text, customization.surface);
-  const bodyText = safeTextColor(customization.text, customization.background);
-  const surfaceLinkText = safeTextColor(accent, customization.surface);
-  const bodyLinkText = safeTextColor(accent, customization.background);
-  const headerText = safeTextColor("#ffffff", accent);
+  const tokens = effectiveNativeTokens(customization);
+  const mode = customization.contrastMode;
+  const readable = (requested: string, background: string, threshold = 4.5): string =>
+    resolveForeground(
+      requested,
+      background,
+      mode,
+      [tokens.primaryText, tokens.mutedText, tokens.link, tokens.headerText],
+      threshold
+    ).resolved;
   const radius = RADII[customization.corners];
   const shadow = SHADOWS[customization.shadow];
   const spacing = density === "compact" ? "0.72" : "1";
+  const surfaceText = readable(tokens.primaryText, tokens.primarySurface);
+  const surfaceLink = readable(tokens.link, tokens.primarySurface);
+  const elevatedText = readable(tokens.primaryText, tokens.elevatedSurface);
+  const elevatedLink = readable(tokens.link, tokens.elevatedSurface);
+  const pageText = readable(tokens.primaryText, tokens.pageBackground);
+  const pageLink = readable(tokens.link, tokens.pageBackground);
+  const leftText = readable(tokens.primaryText, tokens.leftRail);
+  const leftLink = readable(tokens.link, tokens.leftRail);
+  const rightText = readable(tokens.primaryText, tokens.rightRail);
+  const rightLink = readable(tokens.link, tokens.rightRail);
+  const headerText = readable(tokens.headerText, tokens.headerBackground);
+  const controlText = readable(tokens.primaryText, tokens.control);
   const rules: string[] = [
-    `html.sc-native-customized { --sc-native-bg: ${customization.background}; --sc-native-surface: ${customization.surface}; --sc-native-body-text: ${bodyText}; --sc-native-surface-text: ${surfaceText}; --sc-native-border: ${customization.border}; --sc-native-accent: ${accent}; --sc-native-body-link: ${bodyLinkText}; --sc-native-surface-link: ${surfaceLinkText}; --sc-native-radius: ${radius}; --sc-native-shadow: ${shadow}; --sc-native-space: ${spacing}; }`,
-    "html.sc-native-customized body { background: var(--sc-native-bg) !important; color: var(--sc-native-body-text) !important; }"
+    `html.sc-native-customized { --sc-native-border: ${tokens.border}; --sc-native-accent: ${tokens.accent}; --sc-native-focus: ${tokens.focusRing}; --sc-native-control: ${tokens.control}; --sc-native-control-text: ${controlText}; --sc-native-radius: ${radius}; --sc-native-shadow: ${shadow}; --sc-native-space: ${spacing}; }`
   ];
+
+  const add = (region: NativeThemeRegion, rule: string): void => {
+    if (supported.has(region)) rules.push(rule);
+  };
+  add(
+    "page-canvas",
+    regionRule("page-canvas", tokens.pageBackground, pageText, pageLink, "", false)
+  );
+  add(
+    "institution-header",
+    regionRule("institution-header", tokens.headerBackground, headerText, headerText)
+  );
+  add(
+    "dashboard-tabs",
+    regionRule(
+      "dashboard-tabs",
+      tokens.primarySurface,
+      surfaceText,
+      surfaceLink,
+      "border-color: var(--sc-native-border) !important;"
+    )
+  );
+  add(
+    "dashboard-grid",
+    regionRule("dashboard-grid", tokens.pageBackground, pageText, pageLink, "", false)
+  );
+  add(
+    "course-card",
+    regionRule(
+      "course-card",
+      tokens.elevatedSurface,
+      elevatedText,
+      elevatedLink,
+      "border-color: var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; box-shadow: var(--sc-native-shadow) !important;"
+    )
+  );
+  add(
+    "course-card-content",
+    regionRule("course-card-content", tokens.primarySurface, surfaceText, surfaceLink)
+  );
+  add("left-rail", regionRule("left-rail", tokens.leftRail, leftText, leftLink));
+  add("right-rail", regionRule("right-rail", tokens.rightRail, rightText, rightLink));
+  add(
+    "surface",
+    regionRule(
+      "surface",
+      tokens.primarySurface,
+      surfaceText,
+      surfaceLink,
+      "border-color: var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important;"
+    )
+  );
+  add(
+    "modal",
+    regionRule(
+      "modal",
+      tokens.elevatedSurface,
+      elevatedText,
+      elevatedLink,
+      "border-color: var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; box-shadow: var(--sc-native-shadow) !important;"
+    )
+  );
+  add(
+    "popover",
+    regionRule(
+      "popover",
+      tokens.elevatedSurface,
+      elevatedText,
+      elevatedLink,
+      "border-color: var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; box-shadow: var(--sc-native-shadow) !important;"
+    )
+  );
+  add("footer", regionRule("footer", tokens.primarySurface, surfaceText, surfaceLink));
+
+  rules.push(
+    'html.sc-native-customized [data-sc-theme-role="text"] { color: var(--sc-region-text) !important; }',
+    'html.sc-native-customized [data-sc-theme-role="muted"] { color: color-mix(in srgb, var(--sc-region-text) 72%, var(--sc-region-bg)) !important; }',
+    'html.sc-native-customized [data-sc-theme-role="link"] { color: var(--sc-region-link) !important; }',
+    `html.sc-native-customized [data-sc-theme-role="tab-active"] { color: ${readable(tokens.activeTab, tokens.primarySurface)} !important; border-color: ${tokens.accent} !important; }`,
+    `html.sc-native-customized [data-sc-theme-role="tab-inactive"] { color: ${readable(tokens.inactiveTab, tokens.primarySurface)} !important; }`,
+    'html.sc-native-customized [data-sc-theme-role="control"] { background-color: var(--sc-native-control) !important; color: var(--sc-native-control-text) !important; border-color: var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; }',
+    'html.sc-native-customized [data-sc-theme-role="icon-control"] { color: currentColor !important; border-color: transparent !important; }',
+    'html.sc-native-customized [data-sc-theme-role="link"]:hover, html.sc-native-customized [data-sc-theme-role^="tab-"]:hover { text-decoration: underline !important; text-decoration-thickness: 0.12em !important; }',
+    'html.sc-native-customized [data-sc-theme-role="control"]:hover { filter: brightness(0.96); }',
+    'html.sc-native-customized [data-sc-theme-role="control"]:active { filter: brightness(0.9); }',
+    'html.sc-native-customized [data-sc-theme-role="control"]:disabled, html.sc-native-customized [data-sc-theme-role="control"][aria-disabled="true"] { cursor: not-allowed !important; opacity: 0.58 !important; }',
+    "html.sc-native-customized [data-sc-theme-role]:focus-visible { outline: 3px solid var(--sc-native-focus) !important; outline-offset: 2px !important; }",
+    "html.sc-native-customized .sc-native-auto-contrast { color: var(--sc-native-auto-fg) !important; }"
+  );
   if (customization.font !== "native") {
     rules.push(
-      "html.sc-native-customized .sc-course-quick-links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }",
-      "html.sc-native-customized .sc-course-quick-links a { border: 1px solid var(--sc-native-border); border-radius: var(--sc-native-radius); padding: 0.35rem 0.6rem; color: var(--sc-native-surface-link) !important; background: var(--sc-native-surface) !important; }",
-      `html.sc-native-customized body { font-family: ${FONTS[customization.font]} !important; }`
+      `html.sc-native-customized [data-sc-region] { font-family: ${FONTS[customization.font]} !important; }`
     );
   }
-
-  if (supported.has("header")) {
+  const width = WIDTHS[customization.contentWidth];
+  if (width !== "none" && supported.has("page-canvas")) {
     rules.push(
-      `${scopedSelectors("header")} { background: var(--sc-native-accent) !important; color: ${headerText} !important; }`,
-      `${scopedDescendants("header", NON_STATUS_LINK)},\n${scopedDescendants("header", "button")} { color: ${headerText} !important; }`
+      `html.sc-native-customized main[data-sc-region="page-canvas"], html.sc-native-customized #main[data-sc-region="page-canvas"], html.sc-native-customized #main-content[data-sc-region="page-canvas"] { width: min(100%, ${width}); max-width: ${width}; margin-inline: auto !important; }`
     );
   }
-  if (supported.has("content")) {
-    const width = WIDTHS[customization.contentWidth];
-    rules.push(`${scopedSelectors("content")} { color: var(--sc-native-body-text) !important; }`);
-    if (width !== "none") {
-      rules.push(
-        `${scopedSelectors("content")} { width: min(calc(100% - 2rem), ${width}); max-width: ${width}; margin-inline: auto !important; }`
-      );
-    }
-  }
-  for (const group of ["surfaces", "courseCards", "leftRail", "rightRail"] as const) {
-    if (!supported.has(group)) continue;
+  if (customization.hideLeftRail && supported.has("left-rail")) {
     rules.push(
-      `${scopedSelectors(group)} { background: var(--sc-native-surface) !important; color: var(--sc-native-surface-text) !important; border-color: var(--sc-native-border) !important; border-radius: var(--sc-native-radius) !important; box-shadow: var(--sc-native-shadow) !important; }`,
-      `${scopedDescendants(group, NON_STATUS_LINK)} { color: var(--sc-native-surface-link) !important; }`
+      'html.sc-native-customized [data-sc-region="left-rail"] { display: none !important; }'
     );
   }
-  if (supported.has("courseCards")) {
+  if (customization.hideRightRail && supported.has("right-rail")) {
     rules.push(
-      `${scopedSelectors("courseCards")} { padding: calc(1rem * var(--sc-native-space)) !important; }`
+      'html.sc-native-customized [data-sc-region="right-rail"] { display: none !important; }'
     );
-  }
-  if (supported.has("buttons")) {
-    rules.push(
-      `${scopedSelectors("buttons")} { border-radius: var(--sc-native-radius) !important; border-color: var(--sc-native-border) !important; }`
-    );
-  }
-  if (supported.has("links")) {
-    rules.push(`${scopedSelectors("links")} { color: var(--sc-native-body-link) !important; }`);
-  }
-  if (customization.hideLeftRail && supported.has("leftRail")) {
-    rules.push(`${scopedSelectors("leftRail")} { display: none !important; }`);
-  }
-  if (customization.hideRightRail && supported.has("rightRail")) {
-    rules.push(`${scopedSelectors("rightRail")} { display: none !important; }`);
   }
   if (customization.hideFooter && supported.has("footer")) {
-    rules.push(`${scopedSelectors("footer")} { display: none !important; }`);
+    rules.push('html.sc-native-customized [data-sc-region="footer"] { display: none !important; }');
   }
   rules.push(
-    "html.sc-native-customized .sc-native-auto-contrast { color: var(--sc-native-auto-fg) !important; }",
-    "html.sc-native-customized .sc-native-auto-contrast:focus-visible { outline: 3px solid var(--sc-native-auto-fg) !important; outline-offset: 2px !important; }",
-    "@media (prefers-reduced-motion: reduce) { html.sc-native-customized *, html.sc-native-customized *::before, html.sc-native-customized *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }"
+    '@media (max-width: 44rem) { html.sc-native-customized main[data-sc-region="page-canvas"], html.sc-native-customized #main[data-sc-region="page-canvas"], html.sc-native-customized #main-content[data-sc-region="page-canvas"] { width: 100%; max-width: 100%; } html.sc-native-customized [data-sc-region="right-rail"], html.sc-native-customized [data-sc-region="left-rail"] { max-width: 100%; } }',
+    "@media (prefers-reduced-motion: reduce) { html.sc-native-customized [data-sc-region], html.sc-native-customized [data-sc-region] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }"
   );
   return rules.join("\n");
 }

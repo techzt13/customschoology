@@ -30,7 +30,10 @@ function resetCard(card: HTMLElement): void {
 
 export function applyCourseWorkspace(settings: Settings): void {
   const detected = new Set<HTMLElement>();
-  for (const selector of SCHOOLOGY_SELECTORS.courseCards) {
+  for (const selector of [
+    '[data-sc-region="course-card"]',
+    ...(SCHOOLOGY_SELECTORS["course-card"] ?? [])
+  ]) {
     for (const card of document.querySelectorAll<HTMLElement>(selector)) detected.add(card);
   }
 

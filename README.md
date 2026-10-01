@@ -15,9 +15,13 @@ implementation and does not include SchoologyPlus source or assets.
 - In-page Today panel with official status labels and a separate private completion list.
 - System, Calm, High Contrast, and Expressive presets; density, accent, course nickname, and course
   color controls.
-- Safe, reversible native Schoology styling for detected headers, page surfaces, course cards,
-  rails, controls, optional system-font families, spacing, width, borders, corners, and shadows.
-- Bounded automatic contrast correction for text and controls inside extension-touched native
+- Safe, reversible full-shell styling for positively identified institution headers, dashboard tabs,
+  page canvases, dashboard grids, course cards, left/right rails, surfaces, controls,
+  modals/popovers, and footers.
+- Sixteen semantic native-page colors with Automatic WCAG AA, Preserve with warnings, complete High
+  Contrast, and Manual Advanced modes. Settings show requested/resolved colors and ratios rather
+  than silently replacing a choice.
+- Bounded automatic contrast correction only for semantic targets inside extension-annotated
   regions, including transparent and mixed-background descendants.
 - Course workspace favorites, reversible dashboard ordering/visibility, and local quick links.
 - Focus planning with user priorities and effort estimates, materials-page planning actions,
@@ -56,8 +60,10 @@ For an unpacked development build:
 - `src/shared` contains validated settings, messages, and domain models.
 - `test/fixtures` contains synthetic or anonymized Schoology markup.
 
-Schoology DOM nodes do not cross the adapter boundary. Features consume normalized data and fail
-independently when a capability is unavailable.
+Schoology DOM nodes do not cross the adapter boundary. The native theme adapter centrally annotates
+recognized regions with extension-owned `data-sc-region` and `data-sc-theme-role` attributes.
+Generated CSS targets only those annotations; unknown regions and authored course content remain
+native. Features consume normalized data and fail independently when a capability is unavailable.
 
 ## Privacy
 

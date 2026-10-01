@@ -29,12 +29,16 @@ The content script reads supported page regions to identify upcoming assignments
 submission states. It does not submit assignments, alter official grades, or send page data
 elsewhere.
 
-Native customization adds an extension-owned class and generated scoped stylesheet to supported
-pages. It does not rewrite Schoology content or store page HTML.
+Native customization adds extension-owned region/role annotations, a root class, and a generated
+scoped stylesheet to recognized Schoology shell regions. It does not rewrite Schoology content or
+store page HTML. A local compatibility report stores only region names/counts, preservation
+categories, and a timestamp so settings can explain what was themed; it stores no page text, URLs,
+student data, or institution identifiers.
 
-To preserve readability, the extension may inspect computed foreground and background colors inside
-the native regions it styles. This calculation remains in the page, is bounded to detected regions,
-and is never stored or transmitted.
+In Automatic WCAG AA mode, the extension may inspect computed foreground and background colors
+inside positively identified regions. Corrections can select only configured semantic colors or
+black/white fallbacks. This calculation remains in the page, is bounded to semantic targets, and is
+never stored or transmitted. Preserve and Manual modes do not apply runtime substitutions.
 
 ## Optional credentials
 

@@ -84,7 +84,7 @@ describe("normalizeDomain", () => {
         theme: "calm"
       });
 
-      expect(migrated.schemaVersion).toBe(3);
+      expect(migrated.schemaVersion).toBe(4);
       expect(migrated.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
       expect(migrated.accent).toBe("#123456");
     });
@@ -96,7 +96,10 @@ describe("normalizeDomain", () => {
           settings: {
             nativeCustomization: {
               ...DEFAULT_SETTINGS.nativeCustomization,
-              background: "not-a-color",
+              tokens: {
+                ...DEFAULT_SETTINGS.nativeCustomization.tokens,
+                pageBackground: "not-a-color"
+              },
               fontScale: 0
             }
           },
@@ -104,10 +107,48 @@ describe("normalizeDomain", () => {
         })
       );
 
-      expect(imported.nativeCustomization.background).toBe(
-        DEFAULT_SETTINGS.nativeCustomization.background
+      expect(imported.nativeCustomization.tokens.pageBackground).toBe(
+        DEFAULT_SETTINGS.nativeCustomization.tokens.pageBackground
       );
       expect("fontScale" in imported.nativeCustomization).toBe(false);
+    });
+
+    it("round-trips contrast modes and semantic tokens while migrating legacy colors", () => {
+      const legacy = parseSettings({
+        nativeCustomization: {
+          background: "#101820",
+          border: "#334455",
+          surface: "#fefefe",
+          text: "#112233"
+        },
+        schemaVersion: 3
+      });
+      expect(legacy.nativeCustomization.tokens).toMatchObject({
+        border: "#334455",
+        elevatedSurface: "#fefefe",
+        pageBackground: "#101820",
+        primarySurface: "#fefefe",
+        primaryText: "#112233"
+      });
+
+      const imported = importLocalData(
+        JSON.stringify({
+          format: "schoology-companion-settings",
+          settings: {
+            nativeCustomization: {
+              ...DEFAULT_SETTINGS.nativeCustomization,
+              contrastMode: "manual",
+              tokens: {
+                ...DEFAULT_SETTINGS.nativeCustomization.tokens,
+                rightRail: "#123456"
+              }
+            }
+          },
+          version: 4
+        })
+      );
+      expect(imported.nativeCustomization.contrastMode).toBe("manual");
+      expect(imported.nativeCustomization.tokens.rightRail).toBe("#123456");
     });
 
     it("exports the migrated schema and native customization", async () => {
@@ -128,8 +169,8 @@ describe("normalizeDomain", () => {
         settings: typeof DEFAULT_SETTINGS;
         version: number;
       };
-      expect(exported.version).toBe(3);
-      expect(exported.settings.schemaVersion).toBe(3);
+      expect(exported.version).toBe(4);
+      expect(exported.settings.schemaVersion).toBe(4);
       expect(exported.settings.nativeCustomization).toEqual(DEFAULT_SETTINGS.nativeCustomization);
     });
 

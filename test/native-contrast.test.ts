@@ -1,17 +1,12 @@
-import { readFile } from "node:fs/promises";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_SETTINGS } from "../src/shared/models";
+import { discoverThemeRegions } from "../src/schoology/customization/selectors";
 import {
   effectiveBackground,
   NativeContrastAnnotator,
   parseCssColor,
   renderedContrast
 } from "../src/content/native-contrast";
-
-let fixture = "";
-
-beforeAll(async () => {
-  fixture = await readFile("test/fixtures/native-layout.html", "utf8");
-});
 
 afterEach(() => {
   vi.useRealTimers();
@@ -24,80 +19,104 @@ function correctedContrast(element: HTMLElement): number {
   return renderedContrast(foreground!, effectiveBackground(element));
 }
 
-describe("native contrast annotation", () => {
-  it("corrects light tab text against a transparent light ancestor", () => {
-    document.documentElement.innerHTML = fixture;
-    document.querySelectorAll<HTMLElement>("[role='tab']").forEach((tab) => {
-      tab.style.color = "rgb(255, 255, 255)";
-    });
+describe("semantic native contrast annotation", () => {
+  it("corrects identified tab text against transparent ancestry", () => {
+    document.documentElement.innerHTML = `
+      <body>
+        <div role="tablist" style="background: rgb(250, 250, 250)">
+          <div style="background: transparent">
+            <a id="tab" role="tab" aria-selected="true" style="color: white">Course Dashboard</a>
+          </div>
+        </div>
+      </body>`;
+    discoverThemeRegions(document);
     const annotator = new NativeContrastAnnotator();
-    annotator.update();
+    annotator.update(DEFAULT_SETTINGS.nativeCustomization);
     annotator.annotateNow();
 
-    const tab = document.querySelector<HTMLElement>("#recent-activity-tab")!;
+    const tab = document.querySelector<HTMLElement>("#tab")!;
     expect(tab.classList.contains("sc-native-auto-contrast")).toBe(true);
     expect(correctedContrast(tab)).toBeGreaterThanOrEqual(3);
     annotator.disable();
   });
 
-  it("uses 4.5:1 for normal text across mixed light and dark surfaces", () => {
+  it("chooses only semantic colors or black/white fallbacks", () => {
     document.documentElement.innerHTML = `
-      <body><main id="main">
-        <section class="content-box" style="background: rgb(250, 250, 250)">
-          <p id="light" style="color: rgb(245, 245, 245); font-size: 16px">Light surface</p>
-        </section>
-        <section class="feed" style="background: rgb(20, 24, 32)">
-          <p id="dark" style="color: rgb(10, 10, 10); font-size: 16px">Dark surface</p>
-        </section>
-      </main></body>`;
+      <body><aside aria-label="To Do" style="background: rgb(250, 250, 250)">
+        <a id="link" href="/assignment/1" style="color: rgb(248, 248, 248)">Essay</a>
+      </aside></body>`;
+    discoverThemeRegions(document);
     const annotator = new NativeContrastAnnotator();
-    annotator.update();
+    annotator.update(DEFAULT_SETTINGS.nativeCustomization);
     annotator.annotateNow();
 
-    for (const id of ["light", "dark"]) {
-      const element = document.querySelector<HTMLElement>(`#${id}`)!;
-      expect(correctedContrast(element)).toBeGreaterThanOrEqual(4.5);
-    }
+    const correction = document
+      .querySelector<HTMLElement>("#link")!
+      .style.getPropertyValue("--sc-native-auto-fg");
+    const semanticColors = Object.values(DEFAULT_SETTINGS.nativeCustomization.tokens) as string[];
+    expect([...semanticColors, "#000000", "#ffffff"]).toContain(correction);
     annotator.disable();
   });
 
-  it("leaves official status and grade descendants unchanged", () => {
+  it("does not touch unidentified content or official status descendants", () => {
     document.documentElement.innerHTML = `
-      <body><main id="main" style="background: rgb(255, 255, 255)">
-        <div class="submission-status"><span id="status" style="color: white">Submitted</span></div>
-        <div class="grade-item"><span id="grade" style="color: white">A</span></div>
-      </main></body>`;
+      <body>
+        <main><p id="unknown" style="color: white">Authored text</p></main>
+        <aside aria-label="To Do" style="background: white">
+          <div data-status="submitted"><a id="status" href="/" style="color: white">Submitted</a></div>
+        </aside>
+      </body>`;
+    discoverThemeRegions(document);
     const annotator = new NativeContrastAnnotator();
-    annotator.update();
+    annotator.update(DEFAULT_SETTINGS.nativeCustomization);
     annotator.annotateNow();
 
+    expect(document.querySelector("#unknown")?.classList.contains("sc-native-auto-contrast")).toBe(
+      false
+    );
     expect(document.querySelector("#status")?.classList.contains("sc-native-auto-contrast")).toBe(
       false
     );
-    expect(document.querySelector("#grade")?.classList.contains("sc-native-auto-contrast")).toBe(
-      false
-    );
     annotator.disable();
   });
 
-  it("annotates dynamically inserted touched content and removes corrections on disable", async () => {
+  it("preserves chosen colors without runtime substitution outside automatic mode", () => {
+    document.documentElement.innerHTML = `
+      <body><aside aria-label="To Do" style="background: white">
+        <a id="link" href="/" style="color: white">Essay</a>
+      </aside></body>`;
+    discoverThemeRegions(document);
+    const annotator = new NativeContrastAnnotator();
+    annotator.update({
+      ...DEFAULT_SETTINGS.nativeCustomization,
+      contrastMode: "preserve"
+    });
+    annotator.annotateNow();
+
+    expect(document.querySelector("#link")?.classList.contains("sc-native-auto-contrast")).toBe(
+      false
+    );
+  });
+
+  it("handles dynamic identified targets and removes all corrections on disable", async () => {
     vi.useFakeTimers();
     document.documentElement.innerHTML =
-      '<body><main id="main" style="background: white"></main></body>';
+      '<body><aside aria-label="To Do" style="background: white"></aside></body>';
+    discoverThemeRegions(document);
     const annotator = new NativeContrastAnnotator();
-    annotator.update();
-    const main = document.querySelector("#main")!;
-    main.insertAdjacentHTML(
-      "beforeend",
-      '<p id="dynamic" style="color: white; font-size: 16px">New activity</p>'
-    );
+    annotator.update(DEFAULT_SETTINGS.nativeCustomization);
+    document
+      .querySelector("aside")!
+      .insertAdjacentHTML(
+        "beforeend",
+        '<a id="dynamic" data-sc-theme-role="link" href="/" style="color: white">New work</a>'
+      );
     await Promise.resolve();
     vi.advanceTimersByTime(100);
 
     const dynamic = document.querySelector<HTMLElement>("#dynamic")!;
     expect(dynamic.classList.contains("sc-native-auto-contrast")).toBe(true);
     expect(correctedContrast(dynamic)).toBeGreaterThanOrEqual(4.5);
-
     annotator.disable();
     expect(dynamic.classList.contains("sc-native-auto-contrast")).toBe(false);
     expect(dynamic.style.getPropertyValue("--sc-native-auto-fg")).toBe("");

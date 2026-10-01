@@ -32,8 +32,16 @@ screenshots, fixtures, bug reports, or repository files.
 ## Customization and data
 
 - Test all presets in light/dark system modes, compact density, and a custom accent.
-- Verify native header, page background, content surfaces, course cards, detected rails, links,
-  buttons, optional font family, width, borders, corners, spacing, and shadows.
+- Verify the institution header/navigation and icon controls, secondary dashboard tabs, page canvas,
+  dashboard grid, card/image/text areas, left gutter/rail, separate To Do/upcoming rail and inner
+  sections, common content boxes, buttons/inputs/dropdowns, modal/popover surfaces, and footer.
+- Exercise Automatic WCAG AA, Preserve with warnings, complete High Contrast, and Manual Advanced.
+  Confirm every semantic color shows a requested/resolved value and ratio in settings, and automatic
+  substitutions are visible in both the preview and diagnostic text.
+- Check separate page, primary/elevated surface, header/text, primary/muted text, link, accent,
+  border, control, focus, left/right rail, and active/inactive tab colors.
+- Verify per-token reset, semantic-color section reset, layout/visibility section reset, and
+  reset-all.
 - Confirm default/reset styling never changes Schoology's root font size, rem-based navigation,
   control dimensions, icon boxes, header height, or native spacing geometry.
 - Toggle each optional visibility control and confirm only the named nonessential region changes.
@@ -42,10 +50,14 @@ screenshots, fixtures, bug reports, or repository files.
 - Confirm official submitted, late, missing, grade, and alert semantics remain visible and readable.
 - Check active/inactive Recent Activity and Course Dashboard tabs on light and dark nested surfaces;
   normal text must reach 4.5:1 and large/control text 3:1.
-- Insert or reveal asynchronous dashboard content and confirm contrast correction occurs without a
-  full-document rewrite, observer loop, or loss of hover/focus/active states.
+- Insert or reveal asynchronous dashboard content and confirm region discovery/contrast correction
+  occurs without a full-document rewrite, observer loop, or loss of
+  hover/focus/active/selected/disabled states.
 - Navigate to an unknown or institution-customized layout and confirm unsupported regions remain
-  untouched.
+  untouched with both their background and foreground native; no isolated purple/custom text should
+  appear on an uncontrolled surface.
+- Review **Compatibility and themed regions** and compare its detected, themed, native-preserved,
+  and unsupported lists against the visible page.
 - Verify keyboard focus and text contrast at 100% and 200% zoom.
 - Export data, reset, import the export, and confirm settings return.
 - Attempt to import malformed and unrelated JSON; confirm existing settings remain intact.

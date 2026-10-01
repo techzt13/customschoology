@@ -1,6 +1,8 @@
 import type { Settings } from "../shared/models";
 import {
-  detectSelectorSupport,
+  clearThemeRegions,
+  detectedThemeRegions,
+  discoverThemeRegions,
   SELECTOR_CONTRACT_VERSION
 } from "../schoology/customization/selectors";
 import { generateNativeThemeCss } from "../schoology/customization/native-theme";
@@ -10,6 +12,11 @@ const STYLE_ID = "schoology-companion-native-theme";
 const contrastAnnotator = new NativeContrastAnnotator();
 
 export function applyNativeCustomization(settings: Settings): void {
+  if (!settings.nativeCustomization.enabled) {
+    removeNativeCustomization();
+    return;
+  }
+  const report = discoverThemeRegions(document);
   document.documentElement.classList.toggle(
     "sc-native-customized",
     settings.nativeCustomization.enabled
@@ -24,16 +31,18 @@ export function applyNativeCustomization(settings: Settings): void {
   }
   style.textContent = generateNativeThemeCss(
     settings.nativeCustomization,
-    settings.accent,
     settings.density,
-    detectSelectorSupport(document)
+    detectedThemeRegions(document)
   );
-  if (settings.nativeCustomization.enabled) contrastAnnotator.update();
-  else contrastAnnotator.disable();
+  contrastAnnotator.update(settings.nativeCustomization);
+  void chrome.storage.local
+    .set({ themeCompatibility: report })
+    .catch((error: unknown) => console.error("Could not save theme compatibility report.", error));
 }
 
 export function removeNativeCustomization(): void {
   contrastAnnotator.disable();
+  clearThemeRegions(document);
   document.documentElement.classList.remove("sc-native-customized");
   document.documentElement.removeAttribute("data-sc-selector-contract");
   document.querySelector(`#${STYLE_ID}`)?.remove();

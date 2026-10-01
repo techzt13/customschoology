@@ -1,24 +1,11 @@
-import {
-  detectSelectorSupport,
-  SCHOOLOGY_SELECTORS,
-  type SelectorGroup
-} from "../schoology/customization/selectors";
+import type { NativeCustomization, NativeThemeTokens } from "../shared/models";
+import { effectiveNativeTokens } from "../schoology/customization/native-theme";
 
 type Rgba = [number, number, number, number];
 
-const REGION_GROUPS: SelectorGroup[] = [
-  "header",
-  "content",
-  "surfaces",
-  "courseCards",
-  "leftRail",
-  "rightRail"
-];
-const TEXT_TARGETS =
-  "a, button, [role='button'], [role='tab'], h1, h2, h3, h4, h5, h6, label, th, td, p, li, span";
+const THEMED_TARGETS = "[data-sc-region] [data-sc-theme-role]";
 const EXCLUDED_SEMANTICS =
-  "[class*='status' i], [class*='grade' i], [data-status], [data-grade], [aria-label*='status' i], [aria-label*='grade' i]";
-const MAX_REGIONS = 40;
+  "[class*='status' i], [class*='grade' i], [data-status], [data-grade], [aria-label*='status' i], [aria-label*='grade' i], [data-sc-preserve], .user-generated-content, .material-content, iframe";
 const MAX_TARGETS = 600;
 
 function clampChannel(value: number): number {
@@ -27,6 +14,14 @@ function clampChannel(value: number): number {
 
 export function parseCssColor(value: string): Rgba | null {
   const normalized = value.trim().toLowerCase();
+  if (normalized.startsWith("#") && /^#[0-9a-f]{6}$/i.test(normalized)) {
+    return [
+      Number.parseInt(normalized.slice(1, 3), 16),
+      Number.parseInt(normalized.slice(3, 5), 16),
+      Number.parseInt(normalized.slice(5, 7), 16),
+      1
+    ];
+  }
   if (
     (!normalized.startsWith("rgb(") && !normalized.startsWith("rgba(")) ||
     !normalized.endsWith(")")
@@ -86,61 +81,76 @@ export function renderedContrast(foreground: Rgba, background: Rgba): number {
 }
 
 function minimumContrast(element: HTMLElement, style: CSSStyleDeclaration): number {
-  const role = element.getAttribute("role");
-  if (
-    element.matches("button, [role='button'], [role='tab'], input, select") ||
-    role === "button" ||
-    role === "tab"
-  ) {
-    return 3;
-  }
+  if (element.matches("button, [role='button'], [role='tab'], input, select")) return 3;
   const pixels = Number.parseFloat(style.fontSize);
   const weight = Number.parseInt(style.fontWeight, 10) || 400;
   return pixels >= 24 || (pixels >= 18.66 && weight >= 700) ? 3 : 4.5;
 }
 
-function correctionFor(element: HTMLElement): string | null {
+function candidatesFor(element: HTMLElement, tokens: NativeThemeTokens): string[] {
+  const role = element.dataset.scThemeRole;
+  const region = element.closest<HTMLElement>("[data-sc-region]")?.dataset.scRegion;
+  const requested =
+    role === "link"
+      ? tokens.link
+      : role === "tab-active"
+        ? tokens.activeTab
+        : role === "tab-inactive"
+          ? tokens.inactiveTab
+          : region === "institution-header"
+            ? tokens.headerText
+            : tokens.primaryText;
+  return [
+    requested,
+    tokens.primaryText,
+    tokens.mutedText,
+    tokens.link,
+    tokens.headerText,
+    "#000000",
+    "#ffffff"
+  ];
+}
+
+function correctionFor(element: HTMLElement, tokens: NativeThemeTokens): string | null {
   if (!element.textContent?.trim() || element.closest(EXCLUDED_SEMANTICS)) return null;
   const style = getComputedStyle(element);
   const foreground = parseCssColor(style.color);
   if (!foreground) return null;
   const background = effectiveBackground(element);
-  if (renderedContrast(foreground, background) >= minimumContrast(element, style)) return null;
-  const black: Rgba = [0, 0, 0, 1];
-  const white: Rgba = [255, 255, 255, 1];
-  return renderedContrast(black, background) >= renderedContrast(white, background)
-    ? "rgb(0 0 0)"
-    : "rgb(255 255 255)";
-}
-
-function detectedRegions(document: Document): HTMLElement[] {
-  const support = detectSelectorSupport(document);
-  const regions: HTMLElement[] = [];
-  for (const group of REGION_GROUPS) {
-    if (!support.has(group)) continue;
-    for (const selector of SCHOOLOGY_SELECTORS[group]) {
-      for (const node of document.querySelectorAll<HTMLElement>(selector)) {
-        if (!regions.includes(node)) regions.push(node);
-        if (regions.length >= MAX_REGIONS) return regions;
-      }
-    }
-  }
-  return regions;
+  const minimum = minimumContrast(element, style);
+  if (renderedContrast(foreground, background) >= minimum) return null;
+  const candidates = candidatesFor(element, tokens)
+    .map((candidate) => ({
+      candidate,
+      color: parseCssColor(candidate),
+      ratio: parseCssColor(candidate) ? renderedContrast(parseCssColor(candidate)!, background) : 0
+    }))
+    .filter(
+      (candidate): candidate is { candidate: string; color: Rgba; ratio: number } =>
+        candidate.color !== null
+    )
+    .sort((left, right) => right.ratio - left.ratio);
+  return (candidates.find(({ ratio }) => ratio >= minimum) ?? candidates[0])?.candidate ?? null;
 }
 
 export class NativeContrastAnnotator {
   readonly #observer = new MutationObserver(() => this.#schedule());
   readonly #tracked = new Set<HTMLElement>();
-  #regions: HTMLElement[] = [];
+  #customization: NativeCustomization | null = null;
+  #root: HTMLElement | null = null;
   #timer: number | undefined;
 
-  update(): void {
+  update(customization: NativeCustomization): void {
     this.disable();
-    this.#regions = detectedRegions(document);
-    if (this.#regions.length === 0) return;
-    for (const region of this.#regions) {
-      this.#observer.observe(region, { childList: true, subtree: true });
-    }
+    if (customization.contrastMode !== "automatic") return;
+    this.#customization = customization;
+    this.#root = document.documentElement;
+    this.#observer.observe(this.#root, {
+      attributeFilter: ["aria-selected", "aria-current"],
+      attributes: true,
+      childList: true,
+      subtree: true
+    });
     this.#schedule(0);
   }
 
@@ -148,7 +158,8 @@ export class NativeContrastAnnotator {
     this.#observer.disconnect();
     window.clearTimeout(this.#timer);
     this.#timer = undefined;
-    this.#regions = [];
+    this.#customization = null;
+    this.#root = null;
     for (const element of this.#tracked) {
       element.classList.remove("sc-native-auto-contrast");
       element.style.removeProperty("--sc-native-auto-fg");
@@ -157,18 +168,14 @@ export class NativeContrastAnnotator {
   }
 
   annotateNow(): void {
-    const candidates = new Set<HTMLElement>();
-    for (const region of this.#regions) {
-      if (region.matches(TEXT_TARGETS)) candidates.add(region);
-      for (const element of region.querySelectorAll<HTMLElement>(TEXT_TARGETS)) {
-        candidates.add(element);
-        if (candidates.size >= MAX_TARGETS) break;
-      }
-      if (candidates.size >= MAX_TARGETS) break;
-    }
-
+    if (!this.#customization || !this.#root) return;
+    const tokens = effectiveNativeTokens(this.#customization);
+    const candidates = [...document.querySelectorAll<HTMLElement>(THEMED_TARGETS)].slice(
+      0,
+      MAX_TARGETS
+    );
     for (const element of candidates) {
-      const correction = correctionFor(element);
+      const correction = correctionFor(element, tokens);
       if (correction) {
         element.style.setProperty("--sc-native-auto-fg", correction);
         element.classList.add("sc-native-auto-contrast");

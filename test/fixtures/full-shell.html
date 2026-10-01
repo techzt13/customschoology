@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <body>
+    <header role="banner" aria-label="Institution navigation">
+      <img src="/logo.png" alt="Example Academy" />
+      <nav aria-label="Primary">
+        <a href="/home">Home</a>
+        <button aria-label="Messages">Messages</button>
+      </nav>
+    </header>
+    <div id="body">
+      <aside id="left-column" aria-label="Course navigation">Courses</aside>
+      <main id="main" role="main">
+        <nav class="dashboard-navigation" aria-label="Dashboard views">
+          <div role="tablist">
+            <a role="tab" aria-selected="false" href="/recent">Recent Activity</a>
+            <a role="tab" aria-selected="true" href="/home">Course Dashboard</a>
+          </div>
+        </nav>
+        <section class="course-dashboard" aria-label="Course dashboard">
+          <article class="course-card">
+            <img src="/biology.jpg" alt="" />
+            <div class="card-content">
+              <a href="/courses/42">Biology</a>
+              <p data-status="submitted">Submitted</p>
+            </div>
+          </article>
+          <article>
+            <a href="/courses/43">English</a>
+          </article>
+        </section>
+      </main>
+      <aside aria-label="To Do">
+        <section class="upcoming-events">
+          <h2>To Do</h2>
+          <a href="/assignment/7">Essay</a>
+        </section>
+      </aside>
+    </div>
+    <div role="dialog" aria-modal="true"><button>Close</button></div>
+    <div role="menu"><a href="/profile">Profile</a></div>
+    <footer role="contentinfo">Footer</footer>
+    <iframe title="External tool"></iframe>
+  </body>
+</html>
