@@ -1,0 +1,131 @@
+import AxeBuilder from "@axe-core/playwright";
+import { chromium, expect, test } from "@playwright/test";
+import { resolve } from "node:path";
+
+test("options loads accessibly and supports local grade scenarios", async ({}, testInfo) => {
+  const extensionPath = resolve("dist");
+  const context = await chromium.launchPersistentContext(testInfo.outputPath("profile"), {
+    args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+    channel: "chromium",
+    headless: true
+  });
+
+  try {
+    const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
+    const extensionId = new URL(worker.url()).host;
+    await worker.evaluate(async () => {
+      await chrome.storage.local.set({
+        themeCompatibility: {
+          detected: { "institution-header": 1, "right-rail": 1 },
+          layoutWarning: "Layout styling was rolled back: right-rail was hidden or collapsed.",
+          nativePreserved: ["Logos and course images"],
+          route: "home",
+          routeStatus: "Available",
+          routeStatusDetail: "Fixture and browser coverage.",
+          themed: ["institution-header", "right-rail"],
+          unsupported: ["Dashboard grid"],
+          updatedAt: new Date().toISOString()
+        }
+      });
+    });
+    const page = await context.newPage();
+    await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+    await page.goto(`chrome-extension://${extensionId}/options/index.html`);
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "A workspace that feels like yours"
+    );
+    await expect(page.getByLabel("System font family")).toHaveValue("system");
+    await expect(page.getByLabel("Typography scale")).toHaveCount(0);
+    await expect(page.getByLabel("Contrast mode")).toHaveValue("automatic");
+    await expect(page.getByText("Institution header and primary navigation (1)")).toBeVisible();
+    await expect(page.getByText("Logos and course images")).toBeVisible();
+    await expect(page.getByText(/Layout styling was rolled back/)).toBeVisible();
+    await expect(page.getByText(/Current route: home — Available/)).toBeVisible();
+    await expect(page.getByText("SchoologyPlus compatibility reference")).toBeVisible();
+    await expect(page.getByRole("table")).toContainText("Home shell and To Do rail");
+    await expect(page.getByRole("table")).toContainText("API-key and analytics features");
+
+    await page.locator("#native-token-link").fill("#ffffff");
+    const linkToken = page.locator(".sc-native-token").filter({ hasText: "Links" });
+    await expect(linkToken.locator(".sc-token-diagnostic")).toContainText("→");
+    await expect(page.getByText(/visibly resolved to meet WCAG AA/)).toBeVisible();
+
+    await page.getByLabel("Contrast mode").selectOption("preserve");
+    await expect(page.getByText(/strong contrast warning/)).toBeVisible();
+    await expect(linkToken.locator(".sc-token-diagnostic")).not.toContainText("→");
+
+    await page.getByLabel("Contrast mode").selectOption("high-contrast");
+    await expect(page.locator(".sc-native-preview-header")).toHaveCSS(
+      "background-color",
+      "rgb(0, 0, 0)"
+    );
+    await expect(page.getByText(/complete high-contrast preset is active/)).toBeVisible();
+
+    await page.getByLabel("Contrast mode").selectOption("manual");
+    await linkToken.getByRole("button", { name: "Reset Links" }).click();
+    await expect(page.locator("#native-token-link")).toHaveValue("#1d4ed8");
+    await expect(page.getByRole("button", { name: "Reset semantic colors" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reset layout and visibility" })).toBeVisible();
+    await expect(page.getByText("All recognized Schoology sections are visible.")).toBeVisible();
+    await page.getByLabel("Hide right rail when detected").check();
+    await expect(page.getByText(/Hidden Schoology sections: right \/ To Do rail/)).toBeVisible();
+    await page.getByRole("button", { name: "Restore all Schoology sections" }).click();
+    await expect(page.getByLabel("Hide right rail when detected")).not.toBeChecked();
+    await page.getByLabel("Hide right rail when detected").check();
+
+    await expect(page.getByRole("radio")).toHaveCount(20);
+    await expect(page.locator(".sc-preset-pass")).toHaveCount(20);
+    const clearHorizon = page.getByRole("radio", { name: /Clear Horizon/ });
+    await clearHorizon.focus();
+    await clearHorizon.press("ArrowRight");
+    await expect(page.getByRole("radio", { name: /Porcelain Air/ })).toBeChecked();
+    await page.getByRole("button", { name: "Dark", exact: true }).click();
+    await expect(page.getByRole("radio", { name: /Midnight Study/ })).toBeVisible();
+    await expect(clearHorizon).toBeHidden();
+    await page.getByRole("button", { name: "All", exact: true }).click();
+
+    await page.getByRole("radio", { name: /Midnight Study/ }).check();
+    await page.getByRole("button", { name: "Preview without saving" }).click();
+    await expect(page.getByText(/Previewing Midnight Study; not saved/)).toBeVisible();
+    await expect(page.locator(".sc-native-preview-header")).toHaveCSS(
+      "background-color",
+      "rgb(11, 17, 32)"
+    );
+    expect(
+      await worker.evaluate(async () => {
+        const stored = await chrome.storage.local.get("settings");
+        return (stored.settings as { nativeCustomization: { presetId: string } })
+          .nativeCustomization.presetId;
+      })
+    ).not.toBe("midnight-study");
+    await page.getByRole("button", { name: "Cancel preview" }).click();
+    await page.getByRole("button", { name: "Apply selected preset" }).click();
+    await expect(page.getByText("Applied preset: Midnight Study")).toBeVisible();
+    await expect(page.getByLabel("Hide right rail when detected")).not.toBeChecked();
+    await expect(page.getByText("All recognized Schoology sections are visible.")).toBeVisible();
+    await page.locator("#native-token-accent").fill("#123456");
+    await expect(page.getByText("Applied preset: Midnight Study · Customized")).toBeVisible();
+    await page.getByRole("button", { name: "Reset semantic colors" }).click();
+    await expect(page.locator("#native-token-accent")).toHaveValue("#4f46e5");
+    await page.getByRole("button", { name: "Reset layout and visibility" }).click();
+    await expect(page.getByLabel("Layout style")).toHaveValue("soft-elevated");
+    await page.getByRole("button", { name: "Reset all Schoology page styling" }).click();
+    await expect(page.getByText("Applied preset: Clear Horizon")).toBeVisible();
+
+    await page.getByLabel("Scenario name").fill("Final project");
+    await page.getByLabel("Current points earned").fill("80");
+    await page.getByLabel("Current points possible").fill("100");
+    await page.getByLabel("Hypothetical score").fill("20");
+    await page.getByLabel("Hypothetical points possible").fill("20");
+    await page.getByLabel("Target percentage").fill("85");
+    await page.getByRole("button", { name: "Add scenario" }).click();
+    await expect(page.getByRole("heading", { name: "Final project" })).toBeVisible();
+    await expect(page.getByText(/Projected 83\.33%/)).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    expect(results.violations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});

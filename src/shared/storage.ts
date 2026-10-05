@@ -1,0 +1,328 @@
+import {
+  DEFAULT_SETTINGS,
+  type CoursePreference,
+  type FocusPlanEntry,
+  type GradeScenario,
+  type Settings,
+  type ThemeCompatibilityReport
+} from "./models";
+import type { RuntimeResponse, SettingsMutation } from "./messages";
+import { sanitizeNativeCustomization } from "../schoology/customization/native-theme";
+
+const SETTINGS_KEY = "settings";
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const DOMAIN_CHARACTERS = /^[a-z0-9.-]+$/i;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function safeQuickLinks(value: unknown): CoursePreference["quickLinks"] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isRecord)
+    .flatMap((link) => {
+      if (
+        typeof link.label !== "string" ||
+        link.label.trim().length === 0 ||
+        link.label.length > 40 ||
+        typeof link.url !== "string"
+      ) {
+        return [];
+      }
+      try {
+        const url = new URL(link.url);
+        return url.protocol === "https:" ? [{ label: link.label.trim(), url: url.href }] : [];
+      } catch {
+        return [];
+      }
+    })
+    .slice(0, 5);
+}
+
+function parseCoursePreferences(value: unknown): Record<string, CoursePreference> {
+  if (!isRecord(value)) return {};
+  const result: Record<string, CoursePreference> = {};
+  for (const [key, preference] of Object.entries(value)) {
+    if (key.length > 160 || !isRecord(preference)) continue;
+    if (
+      typeof preference.nickname !== "string" ||
+      preference.nickname.length > 80 ||
+      typeof preference.accent !== "string" ||
+      !HEX_COLOR.test(preference.accent)
+    ) {
+      continue;
+    }
+    result[key] = {
+      accent: preference.accent,
+      favorite: preference.favorite === true,
+      hidden: preference.visibilityControlsVersion === 1 && preference.hidden === true,
+      nickname: preference.nickname,
+      order:
+        typeof preference.order === "number" && Number.isInteger(preference.order)
+          ? Math.min(999, Math.max(0, preference.order))
+          : 100,
+      quickLinks: safeQuickLinks(preference.quickLinks),
+      visibilityControlsVersion: 1
+    };
+  }
+  return result;
+}
+
+function parseManualCompletions(value: unknown): Record<string, true> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, true] => entry[0].length <= 500 && entry[1] === true
+    )
+  );
+}
+
+function parseFocusPlan(value: unknown): Record<string, FocusPlanEntry> {
+  if (!isRecord(value)) return {};
+  const result: Record<string, FocusPlanEntry> = {};
+  for (const [id, entry] of Object.entries(value)) {
+    if (id.length > 500 || !isRecord(entry)) continue;
+    if (
+      ![15, 30, 60, 90].includes(Number(entry.effortMinutes)) ||
+      ![1, 2, 3].includes(Number(entry.priority))
+    ) {
+      continue;
+    }
+    result[id] = {
+      assignmentId: id,
+      effortMinutes: Number(entry.effortMinutes) as FocusPlanEntry["effortMinutes"],
+      priority: Number(entry.priority) as FocusPlanEntry["priority"]
+    };
+  }
+  return result;
+}
+
+function finiteNumber(value: unknown, minimum: number, maximum: number): number | null {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(maximum, Math.max(minimum, value))
+    : null;
+}
+
+function parseGradeScenarios(value: unknown): GradeScenario[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isRecord)
+    .flatMap((scenario) => {
+      const currentEarned = finiteNumber(scenario.currentEarned, 0, 1_000_000);
+      const currentPossible = finiteNumber(scenario.currentPossible, 0.01, 1_000_000);
+      const hypotheticalEarned = finiteNumber(scenario.hypotheticalEarned, 0, 1_000_000);
+      const hypotheticalPossible = finiteNumber(scenario.hypotheticalPossible, 0.01, 1_000_000);
+      const targetPercent = finiteNumber(scenario.targetPercent, 0, 100);
+      if (
+        typeof scenario.id !== "string" ||
+        scenario.id.length > 100 ||
+        typeof scenario.name !== "string" ||
+        scenario.name.trim().length === 0 ||
+        scenario.name.length > 80 ||
+        currentEarned === null ||
+        currentPossible === null ||
+        hypotheticalEarned === null ||
+        hypotheticalPossible === null ||
+        targetPercent === null
+      ) {
+        return [];
+      }
+      const rule = ["points", "weighted", "dropped", "extra-credit"].includes(String(scenario.rule))
+        ? (scenario.rule as GradeScenario["rule"])
+        : "points";
+      return [
+        {
+          currentEarned,
+          currentPossible,
+          hypotheticalEarned,
+          hypotheticalPossible,
+          id: scenario.id,
+          name: scenario.name.trim(),
+          rule,
+          targetPercent
+        }
+      ];
+    })
+    .slice(0, 20);
+}
+
+export function normalizeDomain(value: string): string | null {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .split("/")[0];
+  if (!normalized || normalized.length > 253 || !DOMAIN_CHARACTERS.test(normalized)) return null;
+  const labels = normalized.split(".");
+  const valid =
+    labels.length > 1 &&
+    labels.every(
+      (label) =>
+        label.length > 0 && label.length <= 63 && !label.startsWith("-") && !label.endsWith("-")
+    );
+  return valid ? normalized : null;
+}
+
+export function parseSettings(value: unknown): Settings {
+  if (!isRecord(value)) return structuredClone(DEFAULT_SETTINGS);
+
+  const theme = ["system", "calm", "contrast", "expressive"].includes(String(value.theme))
+    ? (value.theme as Settings["theme"])
+    : DEFAULT_SETTINGS.theme;
+  const density = value.density === "compact" ? "compact" : "comfortable";
+  const normalizedDomains = Array.isArray(value.enabledDomains)
+    ? value.enabledDomains
+        .filter((item): item is string => typeof item === "string")
+        .map(normalizeDomain)
+        .filter((item): item is string => item !== null)
+    : [];
+  const enabledDomains = [...new Set(normalizedDomains)].slice(0, 20);
+
+  const nativeInput = isRecord(value.nativeCustomization)
+    ? {
+        ...value.nativeCustomization,
+        tokens: {
+          ...(isRecord(value.nativeCustomization.tokens) ? value.nativeCustomization.tokens : {}),
+          ...(!isRecord(value.nativeCustomization.tokens) &&
+          typeof value.accent === "string" &&
+          HEX_COLOR.test(value.accent)
+            ? { accent: value.accent }
+            : {})
+        }
+      }
+    : value.nativeCustomization;
+
+  return {
+    accent:
+      typeof value.accent === "string" && HEX_COLOR.test(value.accent)
+        ? value.accent
+        : DEFAULT_SETTINGS.accent,
+    coursePreferences: parseCoursePreferences(value.coursePreferences),
+    density,
+    enabledDomains,
+    focusPlan: parseFocusPlan(value.focusPlan),
+    gradeScenarios: parseGradeScenarios(value.gradeScenarios),
+    manualCompletions: parseManualCompletions(value.manualCompletions),
+    nativeCustomization: sanitizeNativeCustomization(nativeInput),
+    panelEnabled: value.panelEnabled !== false,
+    schemaVersion: 6,
+    theme
+  };
+}
+
+export async function loadSettings(): Promise<Settings> {
+  const result = await chrome.storage.local.get(SETTINGS_KEY);
+  return parseSettings(result[SETTINGS_KEY]);
+}
+
+export async function loadThemeCompatibility(): Promise<ThemeCompatibilityReport | null> {
+  const result = await chrome.storage.local.get("themeCompatibility");
+  const report: unknown = result.themeCompatibility;
+  if (!isRecord(report) || !isRecord(report.detected) || !Array.isArray(report.themed)) return null;
+  return report as unknown as ThemeCompatibilityReport;
+}
+
+export async function saveSettings(settings: Settings): Promise<void> {
+  await chrome.storage.local.set({ [SETTINGS_KEY]: parseSettings(settings) });
+}
+
+export function applyMutation(current: Settings, mutation: SettingsMutation): Settings {
+  switch (mutation.kind) {
+    case "PATCH":
+      return parseSettings({ ...current, ...mutation.changes });
+    case "SET_COMPLETION": {
+      const manualCompletions = { ...current.manualCompletions };
+      if (mutation.completed) manualCompletions[mutation.id] = true;
+      else delete manualCompletions[mutation.id];
+      return parseSettings({ ...current, manualCompletions });
+    }
+    case "ADD_DOMAIN":
+      return parseSettings({
+        ...current,
+        enabledDomains: [...current.enabledDomains, mutation.domain]
+      });
+    case "REMOVE_DOMAIN":
+      return parseSettings({
+        ...current,
+        enabledDomains: current.enabledDomains.filter((domain) => domain !== mutation.domain)
+      });
+    case "ADD_COURSES":
+      return parseSettings({
+        ...current,
+        coursePreferences: { ...current.coursePreferences, ...mutation.courses }
+      });
+    case "SET_COURSE":
+      return parseSettings({
+        ...current,
+        coursePreferences: {
+          ...current.coursePreferences,
+          [mutation.courseId]: mutation.preference
+        }
+      });
+    case "SET_FOCUS": {
+      const focusPlan = { ...current.focusPlan };
+      if (mutation.entry) focusPlan[mutation.id] = mutation.entry;
+      else delete focusPlan[mutation.id];
+      return parseSettings({ ...current, focusPlan });
+    }
+    case "SET_GRADE_SCENARIOS":
+      return parseSettings({ ...current, gradeScenarios: mutation.scenarios });
+    case "SET_NATIVE":
+      return parseSettings({
+        ...current,
+        nativeCustomization: mutation.customization
+      });
+    case "RESTORE_VISIBILITY":
+      return parseSettings({
+        ...current,
+        coursePreferences: Object.fromEntries(
+          Object.entries(current.coursePreferences).map(([id, preference]) => [
+            id,
+            { ...preference, hidden: false, visibilityControlsVersion: 1 }
+          ])
+        ),
+        nativeCustomization: {
+          ...current.nativeCustomization,
+          hideFooter: false,
+          hideLeftRail: false,
+          hideRightRail: false,
+          visibilityControlsVersion: 1
+        }
+      });
+    case "REPLACE":
+      return parseSettings(mutation.settings);
+  }
+}
+
+export async function mutateSettings(mutation: SettingsMutation): Promise<Settings> {
+  const response: RuntimeResponse = await chrome.runtime.sendMessage({
+    mutation,
+    type: "MUTATE_SETTINGS"
+  });
+  if (!response.ok) throw new Error(response.error);
+  if (!response.settings) throw new Error("The settings update returned no data.");
+  return response.settings;
+}
+
+export async function exportLocalData(): Promise<string> {
+  const settings = await loadSettings();
+  return JSON.stringify(
+    {
+      exportedAt: new Date().toISOString(),
+      format: "schoology-companion-settings",
+      settings,
+      version: 6
+    },
+    null,
+    2
+  );
+}
+
+export function importLocalData(serialized: string): Settings {
+  const parsed: unknown = JSON.parse(serialized);
+  if (!isRecord(parsed) || parsed.format !== "schoology-companion-settings") {
+    throw new Error("This file is not a Schoology Companion settings export.");
+  }
+  return parseSettings(parsed.settings);
+}

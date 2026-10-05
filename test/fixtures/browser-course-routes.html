@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="generator" content="Schoology" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Schoology course-route fixture</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        min-width: 0;
+        margin: 0;
+        background: #ffffff;
+        color: #20242b;
+        font:
+          16px/1.45 Arial,
+          sans-serif;
+      }
+      #header > header {
+        display: flex;
+        height: 64px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        background: #263247;
+        color: #ffffff;
+      }
+      #header nav,
+      #header nav ul {
+        display: flex;
+        height: 100%;
+        align-items: stretch;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      #header nav {
+        flex: 1;
+        justify-content: space-between;
+      }
+      #header li {
+        display: flex;
+      }
+      #header a,
+      #header button {
+        display: inline-flex;
+        min-width: 72px;
+        height: 64px;
+        align-items: center;
+        justify-content: center;
+        padding: 0 14px;
+        border: 0;
+        background: #ffffff;
+        color: #ffffff;
+        text-decoration: none;
+      }
+      #body,
+      #wrapper {
+        min-height: calc(100vh - 64px);
+        background: #ffffff;
+      }
+      #main-content-wrapper {
+        display: grid;
+        width: 100%;
+        min-width: 0;
+        grid-template-columns: 220px minmax(0, 1fr) 280px;
+        gap: 20px;
+        padding: 20px;
+        background: #ffffff;
+      }
+      #sidebar-left {
+        min-width: 0;
+        padding: 12px;
+        background: #f5f5f5;
+        color: #999999;
+      }
+      .course-image img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+      }
+      #sidebar-left ul {
+        margin: 12px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      #sidebar-left a {
+        display: block;
+        padding: 10px;
+        color: #a4a4a4;
+      }
+      #sidebar-left a.active {
+        border-radius: 999px;
+        background: #e8f0ff;
+        color: #5b4ee4;
+      }
+      #center,
+      #center-inner,
+      #main,
+      #main-inner,
+      #content-wrapper {
+        min-width: 0;
+      }
+      #center-top {
+        margin-bottom: 14px;
+        background: #ffffff;
+      }
+      .content-top-upper {
+        padding: 18px;
+        background: #ffffff;
+      }
+      .page-title {
+        margin: 0;
+      }
+      #main,
+      #main-inner,
+      #content-wrapper {
+        min-height: 560px;
+        padding: 18px;
+        background: #172033;
+        color: #111111;
+      }
+      .route-panel[hidden] {
+        display: none;
+      }
+      .materials-top,
+      .materials-filter-wrapper,
+      .action-links {
+        margin-bottom: 12px;
+        padding: 10px;
+        background: #ffffff;
+      }
+      #course-profile-materials {
+        background: #172033;
+      }
+      .material-row,
+      #folder-contents-table tr {
+        display: block;
+        margin-bottom: 8px;
+        padding: 12px;
+        background: #ffffff;
+      }
+      .user-generated-content,
+      .material-content,
+      .assignment-content,
+      .instructions-content,
+      .s-page-content-full,
+      .info-container,
+      .folder-description,
+      .item-info {
+        margin-block: 12px;
+        padding: 14px;
+        background: transparent;
+        color: #111111;
+      }
+      .long-link {
+        display: inline-block;
+        max-width: 100%;
+      }
+      #right-column {
+        min-width: 0;
+        background: #ffffff;
+      }
+      #right-column-inner > div {
+        margin-bottom: 14px;
+        padding: 14px;
+        border: 1px solid #d7dce5;
+        background: #ffffff;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #cbd2dc;
+        text-align: left;
+      }
+      footer {
+        padding: 18px;
+        background: #ffffff;
+      }
+      @media (max-width: 800px) {
+        #header > header {
+          padding-inline: 10px;
+        }
+        #header nav ul:first-child li:nth-child(n + 2),
+        #header nav ul:last-child li:not(:last-child) {
+          display: none;
+        }
+        #main-content-wrapper {
+          grid-template-columns: minmax(0, 1fr);
+          padding: 12px;
+        }
+        #sidebar-left,
+        #center,
+        #right-column {
+          width: 100%;
+        }
+        #sidebar-left ul {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="header">
+      <header role="banner" aria-label="Institution navigation">
+        <nav aria-label="Primary">
+          <ul>
+            <li>
+              <a class="_1Z0RM Header-header-button-a native-header-control" href="/home">Home</a>
+            </li>
+            <li>
+              <button class="_1Z0RM Header-header-button-a native-header-control">Courses</button>
+            </li>
+          </ul>
+          <ul>
+            <li>
+              <button class="_1Z0RM Header-header-button-a native-header-control">Messages</button>
+            </li>
+            <li>
+              <button class="_1Z0RM Header-header-button-a native-header-control">Profile</button>
+            </li>
+          </ul>
+        </nav>
+      </header>
+    </div>
+    <div id="wrapper">
+      <div id="body">
+        <div id="main-content-wrapper" class="has-right-col">
+          <aside id="sidebar-left" aria-label="Course navigation">
+            <div class="course-image">
+              <img
+                alt="Biology course"
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect width='640' height='360' fill='%23dce8f5'/%3E%3Ccircle cx='520' cy='82' r='110' fill='%23ffffff'/%3E%3C/svg%3E"
+              />
+            </div>
+            <nav id="left-nav" aria-label="Course navigation">
+              <ul id="menu-s-main">
+                <li><a data-route-nav="course" href="/course/42">Course Home</a></li>
+                <li class="active-trail">
+                  <span class="active-trail">
+                    <a
+                      class="course-materials-left-menu"
+                      data-route-nav="materials"
+                      href="/course/42/materials"
+                    >
+                      Materials
+                    </a>
+                  </span>
+                </li>
+                <li><a data-route-nav="grades" href="/course/42/student_grades">Grades</a></li>
+                <li>
+                  <a data-route-nav="assessment" href="/assignment/9/assessment">Assessments</a>
+                </li>
+              </ul>
+            </nav>
+          </aside>
+          <section id="center">
+            <div id="center-top">
+              <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="/home">Home</a> / <a href="/course/42">Biology</a>
+              </nav>
+              <div class="content-top-upper">
+                <h1 class="page-title course-title">Biology · 生物学</h1>
+                <button class="link-btn">Course actions</button>
+              </div>
+            </div>
+            <div id="center-inner">
+              <main id="main">
+                <div id="main-inner">
+                  <section class="route-panel course-home" data-fixture-route="course">
+                    <div class="info-container user-generated-content">
+                      <h2 style="color: #101010">Welcome to Biology</h2>
+                      <p style="color: #111111">
+                        Read the weekly overview and complete the linked activities.
+                      </p>
+                    </div>
+                  </section>
+
+                  <section
+                    id="course-profile-materials"
+                    class="route-panel"
+                    data-fixture-route="materials"
+                    hidden
+                  >
+                    <div class="materials-top">
+                      <h2>Materials</h2>
+                      <button class="link-btn">Add Materials</button>
+                    </div>
+                    <div class="materials-filter-wrapper">
+                      <button class="action-links-unfold">Options</button>
+                      <select aria-label="Filter materials">
+                        <option>All materials</option>
+                      </select>
+                    </div>
+                    <div class="material-row type-folder">
+                      <a class="folder-title item-title" href="/course/42/materials/7">
+                        第一单元 · Cell Biology folder with a title that wraps cleanly
+                      </a>
+                      <div class="folder-description" style="color: #181818">
+                        Teacher notes stay readable without losing the authored light surface.
+                      </div>
+                    </div>
+                    <div class="material-row type-link">
+                      <a
+                        class="item-title long-link"
+                        href="https://example.schoology.com/course/42/materials/8/really-long-learning-tool-link"
+                      >
+                        LTI laboratory notebook with a very long destination label that must wrap
+                      </a>
+                      <div class="item-info" style="color: #141414">External learning tool</div>
+                    </div>
+                  </section>
+
+                  <section
+                    id="content-wrapper"
+                    class="route-panel"
+                    data-fixture-route="material"
+                    hidden
+                  >
+                    <article class="material-content">
+                      <h2 style="color: #111111">Cell structure · 细胞结构</h2>
+                      <ol style="color: #171717">
+                        <li>Review the diagram.</li>
+                        <li>Open the laboratory notebook.</li>
+                      </ol>
+                      <p id="failing-author-color" style="color: #f7f7f7">
+                        This intentionally failing author color is corrected only when needed.
+                      </p>
+                      <a
+                        class="long-link"
+                        href="https://example.schoology.com/very/long/course/material/link/that/must/wrap/without/overflow"
+                      >
+                        https://example.schoology.com/very/long/course/material/link/that/must/wrap/without/overflow
+                      </a>
+                    </article>
+                  </section>
+
+                  <section
+                    class="route-panel assignment-view"
+                    data-fixture-route="assignment"
+                    hidden
+                  >
+                    <article class="assignment-content">
+                      <h2 style="color: #111111">Microscope reflection</h2>
+                      <p style="color: #161616">
+                        Explain your observations and attach the completed document.
+                      </p>
+                    </article>
+                    <button class="link-btn">Submit assignment</button>
+                  </section>
+
+                  <section class="route-panel standard-page" data-fixture-route="page" hidden>
+                    <article class="s-page-content-full">
+                      <h2 style="color: #111111">Lab safety reference</h2>
+                      <p style="color: #181818">
+                        长い文章や CJK テキストも読みやすい行幅で表示されます。
+                      </p>
+                    </article>
+                  </section>
+
+                  <section
+                    class="route-panel grades-overview"
+                    data-fixture-route="grades-overview"
+                    hidden
+                  >
+                    <article class="gradebook-course">
+                      <h2 class="gradebook-course-title"><a href="/course/42">Biology</a></h2>
+                      <div class="summary-course">
+                        <span data-grade="official" style="color: #006b2d">Official grade: A</span>
+                      </div>
+                    </article>
+                  </section>
+
+                  <section
+                    class="route-panel student-grades"
+                    data-fixture-route="student-grades"
+                    hidden
+                  >
+                    <h2>Student gradebook</h2>
+                    <table aria-label="Official grades">
+                      <thead>
+                        <tr>
+                          <th>Material</th>
+                          <th>Official score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Lab reflection</td>
+                          <td data-grade="official">18 / 20</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </section>
+
+                  <form
+                    id="assessment-form"
+                    class="route-panel"
+                    data-fixture-route="assessment"
+                    hidden
+                  >
+                    <div class="instructions-content">
+                      <h2 style="color: #111111">Cell assessment</h2>
+                      <p style="color: #171717">Answer every question before submitting.</p>
+                    </div>
+                    <fieldset class="question">
+                      <legend>Question 1</legend>
+                      <label><input type="radio" name="q1" value="a" /> Nucleus</label>
+                    </fieldset>
+                    <button type="submit">Submit assessment</button>
+                  </form>
+                </div>
+              </main>
+            </div>
+          </section>
+          <aside id="right-column" aria-label="Upcoming">
+            <div id="right-column-inner">
+              <div class="upcoming-events">
+                <h3>Upcoming</h3>
+                <a href="/assignment/101?section_id=42">Microscope reflection</a>
+              </div>
+              <div class="reminders-wrapper"><p>No overdue work</p></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+    <footer role="contentinfo">Institution footer</footer>
+    <script>
+      const path = location.pathname;
+      const fixtureRoute =
+        path === "/grades/grades"
+          ? "grades-overview"
+          : /student_grades$/.test(path)
+            ? "student-grades"
+            : /\/materials\/.+/.test(path)
+              ? "material"
+              : /\/materials$/.test(path)
+                ? "materials"
+                : /\/assessment$/.test(path)
+                  ? "assessment"
+                  : /^\/assignment\//.test(path)
+                    ? "assignment"
+                    : /^\/page\//.test(path)
+                      ? "page"
+                      : "course";
+      for (const panel of document.querySelectorAll("[data-fixture-route]")) {
+        panel.hidden = panel.dataset.fixtureRoute !== fixtureRoute;
+      }
+      const navKey = fixtureRoute.startsWith("grade")
+        ? "grades"
+        : fixtureRoute === "material"
+          ? "materials"
+          : fixtureRoute;
+      for (const link of document.querySelectorAll("[data-route-nav]")) {
+        link.classList.toggle("active", link.dataset.routeNav === navKey);
+        if (link.dataset.routeNav === navKey) link.setAttribute("aria-current", "page");
+      }
+      document.querySelector(".page-title").textContent =
+        {
+          assessment: "Cell assessment",
+          assignment: "Microscope reflection",
+          course: "Biology · 生物学",
+          "grades-overview": "Grades overview",
+          material: "Cell structure · 细胞结构",
+          materials: "Biology Materials",
+          page: "Lab safety reference",
+          "student-grades": "Biology Grades"
+        }[fixtureRoute] || "Biology";
+    </script>
+  </body>
+</html>
