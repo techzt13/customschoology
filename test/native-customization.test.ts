@@ -22,9 +22,13 @@ import {
 } from "../src/schoology/customization/native-theme";
 
 let fixture = "";
+let courseFixture = "";
 
 beforeAll(async () => {
-  fixture = await readFile("test/fixtures/full-shell.html", "utf8");
+  [fixture, courseFixture] = await Promise.all([
+    readFile("test/fixtures/full-shell.html", "utf8"),
+    readFile("test/fixtures/browser-course-routes.html", "utf8")
+  ]);
 });
 
 describe("native Schoology semantic discovery", () => {
@@ -84,6 +88,38 @@ describe("native Schoology semantic discovery", () => {
 
     expect(document.querySelector(`[${REGION_ATTRIBUTE}]`)).toBeNull();
     expect(document.querySelector(`[${THEME_ROLE_ATTRIBUTE}]`)).toBeNull();
+  });
+
+  it("discovers the verified course, materials, and authored reading surfaces by route", () => {
+    history.pushState({}, "", "/course/42/materials");
+    document.documentElement.innerHTML = courseFixture;
+    const report = discoverThemeRegions(document);
+
+    expect(report.route).toBe("materials");
+    expect(report.routeStatus).toBe("Available");
+    expect(report.themed).toEqual(
+      expect.arrayContaining([
+        "course-shell",
+        "course-header",
+        "course-sidebar",
+        "course-navigation",
+        "course-main",
+        "course-image",
+        "breadcrumbs",
+        "materials-toolbar",
+        "materials-list",
+        "material-row",
+        "authored-content",
+        "right-rail"
+      ])
+    );
+    expect(document.querySelector('#sidebar-left[data-sc-region="course-sidebar"]')).not.toBeNull();
+    expect(document.querySelector('#left-nav[data-sc-region="course-navigation"]')).not.toBeNull();
+    expect(
+      document.querySelector('.folder-description[data-sc-region="authored-content"]')
+    ).not.toBeNull();
+    expect(document.querySelector(".folder-description [data-sc-theme-role]")).toBeNull();
+    history.pushState({}, "", "/");
   });
 });
 
@@ -173,7 +209,7 @@ describe("annotation-scoped theme generation", () => {
     expect(css).not.toContain("#header");
     expect(css).not.toContain("#main");
     expect(css).not.toContain(".course-card {");
-    expect(css).not.toMatch(/(^|[,{]\s*)(body|header|main|aside|a|button)\b/m);
+    expect(css).not.toMatch(/^(?:body|header|main|aside|a|button)\b/m);
   });
 
   it("never constrains a generic body, main, or home-shell parent", () => {

@@ -2,14 +2,17 @@
 
 ## Schoology Plus
 
-This project adapts bounded route, header, home-shell, card, and SVG compatibility slices from
-[aopell/SchoologyPlus](https://github.com/aopell/SchoologyPlus), pinned to commit
+This project adapts bounded route, header, home-shell, card, course-shell, materials, grade-surface,
+and SVG compatibility slices from [aopell/SchoologyPlus](https://github.com/aopell/SchoologyPlus),
+pinned to commit
 [`85e2e869678570179fba6ba554d5ca0b469ff3ec`](https://github.com/aopell/SchoologyPlus/commit/85e2e869678570179fba6ba554d5ca0b469ff3ec).
 The integrated source paths are `src/scripts/content.ts`, `src/scripts/pages/all.ts`,
-`src/scripts/pages/home.ts`, `src/styles/all.scss`, and `src/styles/modern/all.scss`. The exact
-fragments, local destinations, modifications, and evaluated-but-not-integrated modules are recorded
-in [`docs/upstream-source-map.md`](docs/upstream-source-map.md). Schoology Plus branding, assets,
-remote services, API credentials, analytics, and legacy build/runtime dependencies are not included.
+`src/scripts/pages/home.ts`, `course.ts`, `materials.ts`, `material.ts`, `page.ts`, and `grades.ts`,
+plus `src/styles/all.scss` and `src/styles/modern/all.scss`. The exact fragments, local
+destinations, modifications, and evaluated-but-not-integrated modules are recorded in
+[`docs/upstream-source-map.md`](docs/upstream-source-map.md). Schoology Plus branding, assets,
+remote services, API credentials, analytics, grade editing, and legacy build/runtime dependencies
+are not included.
 
 The Schoology Plus license follows:
 

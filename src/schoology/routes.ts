@@ -11,6 +11,7 @@ export type SchoologyRoute =
   | "grades"
   | "materials"
   | "material"
+  | "assignment"
   | "assessment"
   | "course"
   | "courses"
@@ -26,10 +27,11 @@ const ROUTES: ReadonlyArray<readonly [SchoologyRoute, RegExp]> = [
   ["materials", /^\/courses\/\d+\/materials$/],
   ["material", /^\/course\/\d+\/materials\//],
   ["material", /^\/courses\/\d+\/materials\//],
+  ["assessment", /^\/assignment\/\d+\/assessment$/],
+  ["assignment", /^\/assignment\/\d+(?:\/|$)/],
   ["home", /^\/$/],
   ["home", /^\/home$/],
   ["home", /^\/home\/(?:recent-activity|course-dashboard)$/],
-  ["assessment", /^\/assignment\/\d+\/assessment$/],
   ["page", /^\/page\//],
   ["user", /^\/user\/\d+$/],
   ["courses", /^\/courses(?:\/|$)/],
@@ -42,4 +44,48 @@ export function schoologyRoute(pathname: string): SchoologyRoute {
 
 export function isHomeRoute(pathname: string): boolean {
   return schoologyRoute(pathname) === "home";
+}
+
+export function isCourseExperienceRoute(pathname: string): boolean {
+  return ["course", "materials", "material", "assignment", "page", "grades", "assessment"].includes(
+    schoologyRoute(pathname)
+  );
+}
+
+export function routeCompatibilityStatus(pathname: string): {
+  detail: string;
+  route: SchoologyRoute;
+  status: "Available" | "Experimental" | "Unsupported";
+} {
+  const route = schoologyRoute(pathname);
+  if (
+    [
+      "home",
+      "course",
+      "materials",
+      "material",
+      "assignment",
+      "page",
+      "grades",
+      "assessment"
+    ].includes(route)
+  ) {
+    return {
+      detail: "Route-specific fixture, Chromium, responsive, contrast, and restoration coverage.",
+      route,
+      status: "Available"
+    };
+  }
+  if (route === "courses") {
+    return {
+      detail: "URL routing is recognized, but the course-directory DOM still needs a real fixture.",
+      route,
+      status: "Experimental"
+    };
+  }
+  return {
+    detail: "No verified route-specific shell adapter or browser fixture.",
+    route,
+    status: "Unsupported"
+  };
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "../src/shared/models";
+import { generateSchoologyPlusCourseCss } from "../src/schoology/compatibility/schoology-plus-course";
 import {
   generateSchoologyPlusCompatibilityCss,
   normalizeSchoologyHeaderIcons,
@@ -15,6 +16,49 @@ describe("pinned SchoologyPlus shell compatibility", () => {
 
     expect(layoutCss).toBe("");
     expect(paintCss).toBe("");
+  });
+
+  describe("pinned SchoologyPlus course compatibility", () => {
+    it("themes only verified course structures without structural width or root typography rules", () => {
+      const { layoutCss, paintCss } = generateSchoologyPlusCourseCss(
+        DEFAULT_SETTINGS.nativeCustomization,
+        "/course/42/materials"
+      );
+
+      for (const selector of [
+        "#main-content-wrapper",
+        "#center-top",
+        "#sidebar-left",
+        "#course-profile-materials",
+        "#right-column",
+        ".materials-top",
+        "div.summary-course",
+        ".gradebook-course.hierarchical-grading-report"
+      ]) {
+        expect(`${paintCss}\n${layoutCss}`).toContain(selector);
+      }
+      expect(paintCss).not.toContain("AUTHORED_READING_SURFACE");
+      expect(paintCss).toContain("#ffffff");
+      expect(paintCss).toContain(".material-content a");
+      expect(paintCss).toContain(":not(");
+      expect(`${paintCss}\n${layoutCss}`).not.toMatch(/font-size\s*:/i);
+      expect(layoutCss).not.toMatch(
+        /#main-content-wrapper[^{]*\{[^}]*(?:^|[;\s])(?:width|max-width)\s*:/im
+      );
+      expect(layoutCss).not.toMatch(/display\s*:\s*none/i);
+    });
+
+    it("emits no course shell CSS on unrelated or disabled routes", () => {
+      expect(generateSchoologyPlusCourseCss(DEFAULT_SETTINGS.nativeCustomization, "/home")).toEqual(
+        { layoutCss: "", paintCss: "" }
+      );
+      expect(
+        generateSchoologyPlusCourseCss(
+          { ...DEFAULT_SETTINGS.nativeCustomization, enabled: false },
+          "/course/42"
+        )
+      ).toEqual({ layoutCss: "", paintCss: "" });
+    });
   });
 
   it("pairs proven header controls and menus without replacing native geometry", () => {
@@ -55,7 +99,9 @@ describe("pinned SchoologyPlus shell compatibility", () => {
       expect(`${home.paintCss}\n${home.layoutCss}`).toContain(selector);
       expect(`${course.paintCss}\n${course.layoutCss}`).not.toContain(selector);
     }
-    expect(home.layoutCss).not.toMatch(/(^|[;{\s])(?:width|max-width)\s*:/im);
+    expect(home.layoutCss).not.toMatch(
+      /#main-content-wrapper[^{]*\{[^}]*(?:^|[;\s])(?:width|max-width)\s*:/im
+    );
   });
 
   it("normalizes only the proven dark header SVG fill and restores it exactly", () => {

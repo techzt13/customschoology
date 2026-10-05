@@ -98,6 +98,49 @@ describe("semantic native contrast annotation", () => {
     );
   });
 
+  it("always protects verified authored reading surfaces while retaining passing author colors", () => {
+    history.pushState({}, "", "/page/7");
+    document.documentElement.innerHTML = `
+      <body>
+        <div id="body"><div id="main-content-wrapper"><div id="center"><main id="main">
+          <div id="main-inner"><article class="standard-page">
+            <div class="s-page-content-full" style="background: white; color: #172033">
+              <p id="failing" style="color: white">Unreadable author color</p>
+              <p id="passing" style="color: #7b2f00">Meaningful passing author color</p>
+            </div>
+          </article></div>
+        </main></div></div></div>
+      </body>`;
+    discoverThemeRegions(document);
+    const annotator = new NativeContrastAnnotator();
+    annotator.update({
+      ...DEFAULT_SETTINGS.nativeCustomization,
+      contrastMode: "preserve"
+    });
+    annotator.annotateNow();
+
+    expect(document.querySelector("#failing")?.classList.contains("sc-native-auto-contrast")).toBe(
+      true
+    );
+    expect(
+      correctedContrast(document.querySelector<HTMLElement>("#failing")!)
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(document.querySelector("#passing")?.classList.contains("sc-native-auto-contrast")).toBe(
+      false
+    );
+
+    annotator.annotateNow();
+
+    expect(document.querySelector("#failing")?.classList.contains("sc-native-auto-contrast")).toBe(
+      true
+    );
+    expect(
+      correctedContrast(document.querySelector<HTMLElement>("#failing")!)
+    ).toBeGreaterThanOrEqual(4.5);
+    annotator.disable();
+    history.pushState({}, "", "/");
+  });
+
   it("handles dynamic identified targets and removes all corrections on disable", async () => {
     vi.useFakeTimers();
     document.documentElement.innerHTML =

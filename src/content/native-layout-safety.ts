@@ -5,7 +5,11 @@ const CRITICAL_REGIONS = [
   "dashboard-tabs",
   "center-column",
   "dashboard-grid",
-  "right-rail"
+  "right-rail",
+  "course-header",
+  "course-sidebar",
+  "course-main",
+  "materials-toolbar"
 ] as const;
 
 interface CriticalSnapshot {
@@ -38,7 +42,8 @@ export function captureNativeLayoutBaseline(document: Document): NativeLayoutBas
   }
   const renderedNavigation = [
     ...document.querySelectorAll<HTMLElement>(
-      '[data-sc-region="institution-header"] a, [data-sc-region="institution-header"] button'
+      '[data-sc-region="institution-header"] a, [data-sc-region="institution-header"] button' +
+        ', [data-sc-region="course-navigation"] a, [data-sc-region="course-navigation"] button'
     )
   ].filter(rendered);
   return {
@@ -49,7 +54,10 @@ export function captureNativeLayoutBaseline(document: Document): NativeLayoutBas
 }
 
 function skipped(region: CriticalSnapshot["region"], customization: NativeCustomization): boolean {
-  return region === "right-rail" && customization.hideRightRail;
+  return (
+    (region === "right-rail" && customization.hideRightRail) ||
+    (region === "course-sidebar" && customization.hideLeftRail)
+  );
 }
 
 export function validateNativeLayout(

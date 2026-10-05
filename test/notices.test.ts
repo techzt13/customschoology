@@ -17,13 +17,16 @@ describe("third-party notices", () => {
     expect(buildScript).toContain('"docs/upstream-source-map.md"');
     expect(sourceMap).toContain("src/styles/all.scss:1-112");
     expect(sourceMap).toContain("src/scripts/pages/all.ts:526-540");
+    expect(sourceMap).toContain("src/styles/modern/all.scss:1038-1091");
+    expect(sourceMap).toContain("src/scripts/pages/course.ts:407-427");
     expect(sourceMap).toContain("No upstream file was copied wholesale");
     expect(sourceMap).toContain("Analytics, telemetry, API-key behavior");
   });
 
   it("attributes substantially adapted source files without legacy upstream dependencies", async () => {
-    const [compatibility, routes, selectors, packageJson] = await Promise.all([
+    const [compatibility, courseCompatibility, routes, selectors, packageJson] = await Promise.all([
       readFile("src/schoology/compatibility/schoology-plus-shell.ts", "utf8"),
+      readFile("src/schoology/compatibility/schoology-plus-course.ts", "utf8"),
       readFile("src/schoology/routes.ts", "utf8"),
       readFile("src/schoology/customization/selectors.ts", "utf8"),
       readFile("package.json", "utf8").then(
@@ -31,7 +34,7 @@ describe("third-party notices", () => {
       )
     ]);
 
-    for (const source of [compatibility, routes, selectors]) {
+    for (const source of [compatibility, courseCompatibility, routes, selectors]) {
       expect(source).toContain("Copyright (c) 2017-2024 Aaron Opell and Glen Husman");
       expect(source).toContain("SPDX-License-Identifier: MIT");
     }

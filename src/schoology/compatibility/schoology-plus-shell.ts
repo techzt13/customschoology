@@ -158,16 +158,21 @@ export function generateSchoologyPlusCompatibilityCss(
         color: ${railLink} !important;
       }`,
       `html.sc-native-customized .course-dashboard section.sgy-card,
-       html.sc-native-customized .course-dashboard .sgy-card-lens {
+       html.sc-native-customized .course-dashboard .course-dashboard__card-context {
         background-color: ${tokens.elevatedSurface} !important;
         color: ${cardText} !important;
       }`,
       `html.sc-native-customized .course-dashboard section.sgy-card a,
+       html.sc-native-customized .course-dashboard .course-dashboard__card-context a,
        html.sc-native-customized .course-dashboard .course-dashboard__card-context-title {
         color: ${cardLink} !important;
       }`,
-      `html.sc-native-customized .course-dashboard section.sgy-card .sgy-card-subcontext {
+      `html.sc-native-customized .course-dashboard .course-dashboard__card-context .sgy-card-subcontext {
         color: ${pair(tokens.mutedText, tokens.elevatedSurface, customization)} !important;
+      }`,
+      `html.sc-native-customized .course-dashboard .sgy-card-lens .sgy-card-subcontext,
+       html.sc-native-customized .course-dashboard .sgy-card-lens .course-dashboard__card-context {
+        color: #ffffff !important;
       }`
     );
     layout.push(
@@ -195,8 +200,68 @@ export function generateSchoologyPlusCompatibilityCss(
         border-radius: var(--sc-splus-radius) !important;
       }`,
       `html.sc-native-customized .course-dashboard section.sgy-card,
-       html.sc-native-customized .course-dashboard .sgy-card-lens {
+       html.sc-native-customized .course-dashboard .sgy-card-lens,
+       html.sc-native-customized .course-dashboard .course-dashboard__card-context {
         border-radius: var(--sc-splus-radius) !important;
+      }`,
+      `html.sc-native-customized .course-dashboard section.sgy-card {
+        display: flex !important;
+        min-height: 18rem;
+        flex-direction: column;
+        overflow: hidden;
+      }`,
+      `html.sc-native-customized .course-dashboard .sgy-card-lens {
+        position: relative;
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        min-height: 8rem;
+        flex: 0 0 auto;
+      }`,
+      `html.sc-native-customized .course-dashboard .sgy-card-lens > img,
+       html.sc-native-customized .course-dashboard .sgy-card-lens picture,
+       html.sc-native-customized .course-dashboard .sgy-card-lens picture img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }`,
+      `html.sc-native-customized .course-dashboard .course-dashboard__card-context:not(.sgy-card-lens) {
+        position: relative !important;
+        inset: auto !important;
+        min-height: 5.25rem;
+        padding: calc(0.9rem * var(--sc-native-space)) !important;
+      }`,
+      `html.sc-native-customized .course-dashboard .course-dashboard__card-context-title {
+        display: -webkit-box;
+        overflow: hidden;
+        line-height: 1.3 !important;
+        overflow-wrap: anywhere;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }`,
+      `html.sc-native-customized .course-dashboard .sgy-card-subcontext {
+        margin-block-start: 0.4rem !important;
+        line-height: 1.35 !important;
+        overflow-wrap: anywhere;
+      }`,
+      `html.sc-native-customized .course-dashboard .sgy-card-lens:has(.sgy-card-subcontext)::after {
+        position: absolute;
+        z-index: 0;
+        inset: 35% 0 0;
+        background: linear-gradient(to bottom, transparent, rgb(0 0 0 / 88%));
+        content: "";
+        pointer-events: none;
+      }`,
+      `html.sc-native-customized .course-dashboard .sgy-card-lens > :is(.sgy-card-subcontext, .course-dashboard__card-context) {
+        position: absolute;
+        z-index: 1;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        padding: 1rem !important;
+        background: rgb(0 0 0 / 84%) !important;
+        color: #ffffff !important;
+        text-shadow: 0 1px 2px rgb(0 0 0 / 75%);
       }`,
       `html.sc-native-customized .course-dashboard .sgy-card {
         border: 1px solid transparent !important;

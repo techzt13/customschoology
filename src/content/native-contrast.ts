@@ -1,12 +1,18 @@
 import type { NativeCustomization, NativeThemeTokens } from "../shared/models";
-import { effectiveNativeTokens } from "../schoology/customization/native-theme";
+import {
+  AUTHORED_READING_LINK,
+  AUTHORED_READING_TEXT,
+  effectiveNativeTokens
+} from "../schoology/customization/native-theme";
 
 type Rgba = [number, number, number, number];
 
 const THEMED_TARGETS = "[data-sc-region] [data-sc-theme-role]";
+const AUTHORED_TARGETS =
+  '[data-sc-region="authored-content"], [data-sc-region="authored-content"] :is(a, button, p, li, dd, dt, blockquote, figcaption, h1, h2, h3, h4, h5, h6, label, span, div, td, th)';
 const EXCLUDED_SEMANTICS =
-  "[class*='status' i], [class*='grade' i], [data-status], [data-grade], [aria-label*='status' i], [aria-label*='grade' i], [data-sc-preserve], .user-generated-content, .material-content, iframe";
-const MAX_TARGETS = 600;
+  "[class*='status' i], [class*='grade' i], [data-status], [data-grade], [aria-label*='status' i], [aria-label*='grade' i], [data-sc-preserve], iframe";
+const MAX_TARGETS = 1_200;
 
 function clampChannel(value: number): number {
   return Math.min(255, Math.max(0, value));
@@ -88,6 +94,15 @@ function minimumContrast(element: HTMLElement, style: CSSStyleDeclaration): numb
 }
 
 function candidatesFor(element: HTMLElement, tokens: NativeThemeTokens): string[] {
+  if (element.closest('[data-sc-region="authored-content"]')) {
+    return [
+      element.matches("a") ? AUTHORED_READING_LINK : AUTHORED_READING_TEXT,
+      AUTHORED_READING_TEXT,
+      AUTHORED_READING_LINK,
+      "#000000",
+      "#ffffff"
+    ];
+  }
   const role = element.dataset.scThemeRole;
   const region = element.closest<HTMLElement>("[data-sc-region]")?.dataset.scRegion;
   const requested =
@@ -137,12 +152,15 @@ export class NativeContrastAnnotator {
   readonly #observer = new MutationObserver(() => this.#schedule());
   readonly #tracked = new Set<HTMLElement>();
   #customization: NativeCustomization | null = null;
+  #automaticSemantic = false;
   #root: HTMLElement | null = null;
   #timer: number | undefined;
 
   update(customization: NativeCustomization): void {
     this.disable();
-    if (customization.contrastMode !== "automatic") return;
+    const hasAuthoredContent = document.querySelector(AUTHORED_TARGETS) !== null;
+    this.#automaticSemantic = customization.contrastMode === "automatic";
+    if (!this.#automaticSemantic && !hasAuthoredContent) return;
     this.#customization = customization;
     this.#root = document.documentElement;
     this.#observer.observe(this.#root, {
@@ -159,6 +177,7 @@ export class NativeContrastAnnotator {
     window.clearTimeout(this.#timer);
     this.#timer = undefined;
     this.#customization = null;
+    this.#automaticSemantic = false;
     this.#root = null;
     for (const element of this.#tracked) {
       element.classList.remove("sc-native-auto-contrast");
@@ -170,19 +189,24 @@ export class NativeContrastAnnotator {
   annotateNow(): void {
     if (!this.#customization || !this.#root) return;
     const tokens = effectiveNativeTokens(this.#customization);
-    const candidates = [...document.querySelectorAll<HTMLElement>(THEMED_TARGETS)].slice(
+    const selector = this.#automaticSemantic
+      ? `${THEMED_TARGETS}, ${AUTHORED_TARGETS}`
+      : AUTHORED_TARGETS;
+    const candidates = [...new Set(document.querySelectorAll<HTMLElement>(selector))].slice(
       0,
       MAX_TARGETS
     );
     for (const element of candidates) {
+      if (this.#tracked.has(element)) {
+        element.classList.remove("sc-native-auto-contrast");
+        element.style.removeProperty("--sc-native-auto-fg");
+      }
       const correction = correctionFor(element, tokens);
       if (correction) {
         element.style.setProperty("--sc-native-auto-fg", correction);
         element.classList.add("sc-native-auto-contrast");
         this.#tracked.add(element);
-      } else if (this.#tracked.has(element)) {
-        element.classList.remove("sc-native-auto-contrast");
-        element.style.removeProperty("--sc-native-auto-fg");
+      } else {
         this.#tracked.delete(element);
       }
     }

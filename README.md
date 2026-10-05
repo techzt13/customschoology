@@ -12,15 +12,17 @@ remote services. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the
 
 ## Capability status
 
-| Capability                                           | Status                     |
-| ---------------------------------------------------- | -------------------------- |
-| Local Today, planning, course workspace, settings    | Available                  |
-| 20 complete native-shell visual presets              | Experimental               |
-| Native Schoology adapters on institution deployments | Needs real-site validation |
-| Manual total-points grade scenarios                  | Available                  |
-| Automatic grade import and unverified grade rules    | Unsupported                |
-| Schoology API credentials and background polling     | Unsupported                |
-| Firefox packaging                                    | Unsupported                |
+| Capability                                                         | Status                                |
+| ------------------------------------------------------------------ | ------------------------------------- |
+| Local Today, planning, course workspace, settings                  | Available                             |
+| 20 complete native-shell visual presets                            | Available                             |
+| Home/dashboard shell with To Do rail and card metadata surfaces    | Available; needs real-site validation |
+| Course, materials, assignment, page, grades, and assessment shells | Available; needs real-site validation |
+| Course directory (`/courses`) and institution-customized variants  | Experimental                          |
+| Manual total-points grade scenarios                                | Available                             |
+| Automatic grade import and unverified grade rules                  | Unsupported                           |
+| Schoology API credentials and background polling                   | Unsupported                           |
+| Firefox packaging                                                  | Unsupported                           |
 
 Implementation checks passing does not mean production compatibility is signed off. Native adapters,
 responsive behavior, keyboard/screen-reader behavior, and observer performance still require manual
@@ -40,6 +42,17 @@ validation on both Schoology-hosted and custom-domain deployments.
 - Route-specific home-shell adapters preserve Schoology's verified center plus right-column
   structure. Layout rules are isolated from colors and automatically rolled back if a previously
   visible critical region collapses, moves offscreen, overlaps, or disappears.
+- Route-scoped course-experience adapters theme the full course shell cohesively — header/title
+  area, course sidebar and navigation, main reading surface, materials toolbar and rows, right
+  Upcoming rail, and controls — using selector knowledge adapted from the pinned SchoologyPlus
+  revision. Dashboard-card metadata never sits bare on an image: overlay text gets a deterministic
+  dark scrim with white text (≥4.5:1), and separate metadata surfaces use preset-driven paired
+  colors.
+- Teacher-authored content uses a safe light reading surface with bounded computed-contrast
+  correction for failing inline colors; passing author colors, official grade/status semantics,
+  images, and iframes stay native. If a surface still fails validation, only that authored surface
+  rolls back to its captured native foreground/background pair, and settings shows a compatibility
+  warning.
 - Sixteen semantic native-page colors with Automatic WCAG AA, Preserve with warnings, complete High
   Contrast, and Manual Advanced modes. Settings show requested/resolved colors and ratios rather
   than silently replacing a choice.

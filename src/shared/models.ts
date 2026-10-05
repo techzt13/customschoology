@@ -82,13 +82,25 @@ export type NativeThemeRegion =
   | "dashboard-tabs"
   | "page-canvas"
   | "home-shell"
+  | "course-shell"
   | "center-column"
   | "content-wrapper"
   | "center-top"
+  | "course-header"
+  | "course-sidebar"
+  | "course-navigation"
+  | "course-main"
+  | "course-image"
+  | "breadcrumbs"
   | "home-feed"
   | "dashboard-grid"
   | "course-card"
+  | "course-card-media"
   | "course-card-content"
+  | "materials-toolbar"
+  | "materials-list"
+  | "material-row"
+  | "authored-content"
   | "left-rail"
   | "right-rail"
   | "right-rail-inner"
@@ -100,10 +112,14 @@ export type NativeThemeRegion =
 export interface ThemeCompatibilityReport {
   detected: Partial<Record<NativeThemeRegion, number>>;
   nativePreserved: string[];
+  route: string;
+  routeStatus: "Available" | "Experimental" | "Unsupported";
+  routeStatusDetail: string;
   themed: NativeThemeRegion[];
   unsupported: string[];
   updatedAt: string;
   layoutWarning?: string;
+  surfaceWarning?: string;
 }
 
 export interface CoursePreference {

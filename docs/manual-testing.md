@@ -12,6 +12,16 @@ screenshots, fixtures, bug reports, or repository files.
 - A sanitized home-shell DOM fragment containing `#main-content-wrapper`, `#center`, `#center-top`,
   `#main-inner`, `#right-column`, and `#right-column-inner`, including the computed
   display/grid/flex styles on their direct parents.
+- A sanitized course-shell DOM fragment containing `#sidebar-left`, `#left-nav` (or `#menu-s-main`),
+  `#center-top .content-top-upper`, `.page-title`, `#main`, `#main-inner`, `.course-image`, and
+  `#right-column`/`#right-column-inner`.
+- A sanitized materials-list fragment with `#course-profile-materials`, `.materials-top`, folder and
+  material rows; a material/page fragment with `.user-generated-content`/`.material-content` (or the
+  institution's equivalent authored wrapper) including inline-styled teacher text.
+- Sanitized grades fragments with `.gradebook-course`, `.summary-course`, and the student-gradebook
+  table; an assessment fragment with its question form and submit control.
+- A dashboard card fragment with a light or white course image so overlay instructor/context text
+  contrast can be verified on real markup.
 - Path/query shapes with tenant and identifiers replaced.
 
 ## Installation and permission
@@ -71,6 +81,30 @@ screenshots, fixtures, bug reports, or repository files.
 - If the **Compatibility and themed regions** panel reports a layout rollback, confirm colors remain
   active, every native region is visible and usable, and changing a layout preference safely retries
   structural styling.
+
+## Course-route shell (course home, materials, material, assignment, page, grades, assessment)
+
+- On `/course/<id>` and `/course/<id>/materials`, confirm the full shell is cohesive: institution
+  header, course image, sidebar navigation with visible active/hover/focus states, title area,
+  materials toolbar, rows, right Upcoming rail, and page canvas all use the selected preset, with no
+  white outer void and no arbitrary shell width.
+- On a dashboard card with a light or white course image, confirm instructor/context overlay text is
+  readable (dark scrim, white text) and card titles wrap within their metadata surface instead of
+  clipping.
+- On material/page/assignment routes with teacher-authored content, confirm dark presets never
+  render black native text on a dark themed parent: authored regions use the light reading surface,
+  and failing inline author colors are corrected while passing author colors remain.
+- Confirm CJK text, long URLs, numbered lists, folders, LTI links, and icons wrap without overflow
+  at full width, narrow width, and actual 200% Chrome zoom.
+- On grades overview and student gradebook, confirm official grade/status colors and meaning are
+  preserved, and grade surfaces remain readable in every preset category.
+- On a supported assessment, confirm native submit controls, radio/checkbox/text/select questions,
+  and the unanswered-warning behavior still work; theme must not alter assessment logic.
+- If the **Compatibility and themed regions** panel reports a course-surface rollback, confirm the
+  affected authored surface returned to its native paired colors while the rest of the shell stays
+  themed.
+- Disable native customization and confirm the institution header, sidebar, authored content,
+  materials, grades, and assessment all return exactly to Schoology's native presentation.
 - Use every per-setting reset and reset-all; confirm Schoology returns immediately to its prior
   native presentation when customization is disabled, including restoration of original header SVG
   path fills.

@@ -1,6 +1,7 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="utf-8" />
     <meta name="generator" content="Schoology" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Schoology home-shell fixture</title>
@@ -115,6 +116,24 @@
         background: white;
       }
       .sgy-card-lens {
+        position: relative;
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+      }
+      .sgy-card-lens img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .sgy-card-lens .sgy-card-subcontext {
+        position: absolute;
+        right: 12px;
+        bottom: 8px;
+        left: 12px;
+        color: white;
+      }
+      .course-dashboard__card-context {
         padding: 12px;
       }
       #right-column {
@@ -275,29 +294,36 @@
                     class="sgy-card course-card"
                     style="display: grid; order: 7; border-inline-start: 2px solid red"
                   >
-                    <div class="sgy-card-lens course-dashboard__card-context card-content">
+                    <div class="sgy-card-lens">
+                      <img
+                        alt="Biology course"
+                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect width='640' height='360' fill='%23ffffff'/%3E%3Cpath d='M0 250 Q160 190 320 250 T640 250 V360 H0Z' fill='%23eef2f7'/%3E%3C/svg%3E"
+                      />
+                      <p class="sgy-card-subcontext">Feng Qian-Qian</p>
+                    </div>
+                    <div class="course-dashboard__card-context card-content">
                       <a
                         class="course-dashboard__card-context-title"
                         href="https://example.schoology.com/courses/42"
                       >
-                        Biology
+                        Biology with a descriptive title that wraps without being cropped
                       </a>
-                      <p>Biology · Period 2</p>
+                      <p class="sgy-card-subcontext">Biology · Period 2</p>
                     </div>
                   </article>
                   <article class="sgy-card course-card">
-                    <div class="sgy-card-lens course-dashboard__card-context card-content">
+                    <div class="course-dashboard__card-context card-content">
                       <a href="https://example.schoology.com/courses/43">English</a>
-                      <p>English · Period 4</p>
+                      <p class="sgy-card-subcontext">English · Period 4</p>
                     </div>
                   </article>
                   <article class="sgy-card course-card">
-                    <div class="sgy-card-lens course-dashboard__card-context card-content">
+                    <div class="course-dashboard__card-context card-content">
                       <a href="https://example.schoology.com/courses/44">History</a>
                     </div>
                   </article>
                   <article class="sgy-card course-card">
-                    <div class="sgy-card-lens course-dashboard__card-context card-content">
+                    <div class="course-dashboard__card-context card-content">
                       <a href="https://example.schoology.com/courses/45">Geometry</a>
                     </div>
                   </article>

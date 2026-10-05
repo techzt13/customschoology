@@ -1,4 +1,5 @@
 import type { Settings, ThemeCompatibilityReport } from "../shared/models";
+import { generateSchoologyPlusCourseCss } from "../schoology/compatibility/schoology-plus-course";
 import {
   generateSchoologyPlusCompatibilityCss,
   normalizeSchoologyHeaderIcons,
@@ -11,6 +12,13 @@ import {
   discoverThemeRegions,
   SELECTOR_CONTRACT_VERSION
 } from "../schoology/customization/selectors";
+import { schoologyRoute } from "../schoology/routes";
+import {
+  captureCourseSurfaceBaseline,
+  clearCourseSurfaceRollbacks,
+  rollbackCourseSurfaces,
+  validateCourseSurfaces
+} from "./course-surface-safety";
 import { NativeContrastAnnotator } from "./native-contrast";
 import { captureNativeLayoutBaseline, validateNativeLayout } from "./native-layout-safety";
 
@@ -52,7 +60,9 @@ export function applyNativeCustomization(settings: Settings): void {
     removeNativeCustomization();
     return;
   }
+  clearCourseSurfaceRollbacks(document);
   const report = discoverThemeRegions(document);
+  const courseSurfaceBaseline = captureCourseSurfaceBaseline(document);
   const baseline = captureNativeLayoutBaseline(document);
   const [nativePaintCss, nativeLayoutCss] = splitThemeCss(
     generateNativeThemeCss(settings.nativeCustomization, detectedThemeRegions(document))
@@ -61,50 +71,63 @@ export function applyNativeCustomization(settings: Settings): void {
     settings.nativeCustomization,
     location.pathname
   );
-  const safeCss = `${nativePaintCss}\n${compatibilityCss.paintCss}`;
-  const layoutCss = `${nativeLayoutCss}\n${compatibilityCss.layoutCss}`;
+  const courseCss = generateSchoologyPlusCourseCss(settings.nativeCustomization, location.pathname);
+  const safeCss = `${nativePaintCss}\n${compatibilityCss.paintCss}\n${courseCss.paintCss}`;
+  const layoutCss = `${nativeLayoutCss}\n${compatibilityCss.layoutCss}\n${courseCss.layoutCss}`;
   document.documentElement.classList.add("sc-native-customized");
   document.documentElement.dataset.scSelectorContract = String(SELECTOR_CONTRACT_VERSION);
+  document.body.dataset.scRoute = schoologyRoute(location.pathname);
   ensureStyle(STYLE_ID).textContent = safeCss;
 
   const key = settingsLayoutKey(settings);
   const run = ++layoutSafetyRun;
+  let layoutStyle: HTMLStyleElement | null = null;
   if (rolledBackLayoutKey === key) {
     document.querySelector(`#${LAYOUT_STYLE_ID}`)?.remove();
-    saveCompatibility({
-      ...report,
-      layoutWarning: rolledBackLayoutWarning ?? "Layout styling remains rolled back on this page."
-    });
   } else {
-    const layoutStyle = ensureStyle(LAYOUT_STYLE_ID);
+    layoutStyle = ensureStyle(LAYOUT_STYLE_ID);
     layoutStyle.textContent = layoutCss;
-    saveCompatibility(report);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (run !== layoutSafetyRun || !layoutStyle.isConnected) return;
-        const issues = validateNativeLayout(baseline, settings.nativeCustomization);
-        if (issues.length === 0) {
-          saveCompatibility(report);
-          return;
-        }
-        layoutStyle.remove();
-        rolledBackLayoutKey = key;
-        rolledBackLayoutWarning = `Layout styling was rolled back: ${issues.join("; ")}.`;
-        saveCompatibility({ ...report, layoutWarning: rolledBackLayoutWarning });
-      });
-    });
   }
   normalizeSchoologyHeaderIcons(document);
   contrastAnnotator.update(settings.nativeCustomization);
+  contrastAnnotator.annotateNow();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (run !== layoutSafetyRun) return;
+      const finalReport: ThemeCompatibilityReport = { ...report };
+      if (rolledBackLayoutKey === key) {
+        finalReport.layoutWarning =
+          rolledBackLayoutWarning ?? "Layout styling remains rolled back on this page.";
+      } else {
+        const issues = validateNativeLayout(baseline, settings.nativeCustomization);
+        if (issues.length > 0) {
+          layoutStyle?.remove();
+          rolledBackLayoutKey = key;
+          rolledBackLayoutWarning = `Layout styling was rolled back: ${issues.join("; ")}.`;
+          finalReport.layoutWarning = rolledBackLayoutWarning;
+        }
+      }
+      contrastAnnotator.annotateNow();
+      const surfaceIssues = validateCourseSurfaces(courseSurfaceBaseline, document);
+      if (surfaceIssues.length > 0) {
+        rollbackCourseSurfaces(courseSurfaceBaseline);
+        contrastAnnotator.annotateNow();
+        finalReport.surfaceWarning = `Course content styling was safely restored: ${surfaceIssues.join("; ")}.`;
+      }
+      saveCompatibility(finalReport);
+    });
+  });
 }
 
 export function removeNativeCustomization(): void {
   layoutSafetyRun += 1;
   contrastAnnotator.disable();
+  clearCourseSurfaceRollbacks(document);
   restoreSchoologyHeaderIcons(document);
   clearThemeRegions(document);
   document.documentElement.classList.remove("sc-native-customized");
   document.documentElement.removeAttribute("data-sc-selector-contract");
+  document.body.removeAttribute("data-sc-route");
   document.querySelector(`#${STYLE_ID}`)?.remove();
   document.querySelector(`#${LAYOUT_STYLE_ID}`)?.remove();
   rolledBackLayoutKey = null;

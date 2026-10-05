@@ -24,7 +24,7 @@ test("content script preserves native geometry and enhances supported workflows"
   await context.route("https://example.schoology.com/**", async (route) => {
     await route.fulfill({
       body: route.request().url().includes("/assessment/") ? assessment : home,
-      contentType: "text/html",
+      contentType: "text/html; charset=utf-8",
       status: 200
     });
   });
@@ -168,6 +168,70 @@ test("content script preserves native geometry and enhances supported workflows"
       .locator("html")
       .evaluate((element) => getComputedStyle(element).fontSize);
     expect(rootFontSize).toBe("16px");
+    const cardLegibility = await page
+      .locator(".course-card")
+      .first()
+      .evaluate((card) => {
+        const instructor = card.querySelector<HTMLElement>(".sgy-card-lens .sgy-card-subcontext")!;
+        const title = card.querySelector<HTMLElement>(".course-dashboard__card-context-title")!;
+        const context = card.querySelector<HTMLElement>(".course-dashboard__card-context")!;
+        const parse = (value: string): [number, number, number, number] => {
+          const parts = value.match(/[\d.]+/g)!.map(Number);
+          return [parts[0]!, parts[1]!, parts[2]!, parts[3] ?? 1];
+        };
+        const composite = (
+          foreground: [number, number, number, number],
+          background: [number, number, number, number]
+        ): [number, number, number, number] => {
+          const alpha = foreground[3] + background[3] * (1 - foreground[3]);
+          return [
+            (foreground[0] * foreground[3] + background[0] * background[3] * (1 - foreground[3])) /
+              alpha,
+            (foreground[1] * foreground[3] + background[1] * background[3] * (1 - foreground[3])) /
+              alpha,
+            (foreground[2] * foreground[3] + background[2] * background[3] * (1 - foreground[3])) /
+              alpha,
+            alpha
+          ];
+        };
+        const luminance = (color: [number, number, number, number]): number => {
+          const channels = color.slice(0, 3).map((channel) => {
+            const normalized = channel / 255;
+            return normalized <= 0.04045
+              ? normalized / 12.92
+              : ((normalized + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+        };
+        const foreground = parse(getComputedStyle(instructor).color);
+        const background = composite(
+          parse(getComputedStyle(instructor).backgroundColor),
+          [255, 255, 255, 1]
+        );
+        const values = [luminance(foreground), luminance(background)].sort(
+          (left, right) => right - left
+        );
+        const titleRect = title.getBoundingClientRect();
+        const contextRect = context.getBoundingClientRect();
+        return {
+          cardHeight: card.getBoundingClientRect().height,
+          imageSource: card.querySelector<HTMLImageElement>(".sgy-card-lens img")!.src,
+          instructorRatio: (values[0]! + 0.05) / (values[1]! + 0.05),
+          titleInside:
+            titleRect.left >= contextRect.left &&
+            titleRect.right <= contextRect.right + 1 &&
+            titleRect.top >= contextRect.top &&
+            titleRect.bottom <= contextRect.bottom + 1,
+          titleLines: Math.round(
+            titleRect.height / Number.parseFloat(getComputedStyle(title).lineHeight)
+          )
+        };
+      });
+    expect(cardLegibility.imageSource).toContain("data:image/svg+xml");
+    expect(cardLegibility.instructorRatio).toBeGreaterThanOrEqual(4.5);
+    expect(cardLegibility.cardHeight).toBeGreaterThanOrEqual(280);
+    expect(cardLegibility.titleInside).toBe(true);
+    expect(cardLegibility.titleLines).toBeGreaterThanOrEqual(2);
 
     const wideGeometry = await page.evaluate(() => {
       const wrapper = document.querySelector("#main-content-wrapper")!.getBoundingClientRect();

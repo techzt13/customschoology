@@ -1146,6 +1146,20 @@ function domainsSection(
         })
       );
     }
+    if (compatibility.surfaceWarning) {
+      node.append(
+        element("p", {
+          className: "sc-message sc-compatibility-warning",
+          text: compatibility.surfaceWarning
+        })
+      );
+    }
+    node.append(
+      element("p", {
+        className: "sc-message",
+        text: `Current route: ${compatibility.route ?? "unknown"} — ${compatibility.routeStatus ?? "Experimental"}. ${compatibility.routeStatusDetail ?? "Refresh a supported Schoology page to update route evidence."}`
+      })
+    );
     const grid = element("div", { className: "sc-compatibility-grid" });
     const reportList = (title: string, items: string[], tone = ""): HTMLElement => {
       const card = element("div", { className: `sc-card sc-stack ${tone}`.trim() });
@@ -1197,9 +1211,27 @@ function domainsSection(
     ],
     [
       "Dashboard cards",
+      "Available",
+      "Light-image fixture, bounded media/metadata adapters, contrast and responsive Chromium coverage",
+      "Course imagery stays native; text uses a separate semantic surface or verified scrim"
+    ],
+    [
+      "Course and materials shell",
+      "Available",
+      "Pinned sidebar/title/material/right-rail selectors plus authored reading-surface safeguards",
+      "No arbitrary shell widths; unsafe authored paint rolls back per content surface"
+    ],
+    [
+      "Assignment, page, grades, and assessment shells",
+      "Available",
+      "Route fixtures with full, narrow, zoom-equivalent, focus, contrast, and restoration coverage",
+      "Feature behavior remains independently gated; official grades/statuses stay native"
+    ],
+    [
+      "Course directory and institution-specific variants",
       "Experimental",
-      "Scoped sgy-card and semantic fallback adapters",
-      "Images and official status semantics remain native"
+      "Routing recognized; unknown DOM remains native",
+      "Requires sanitized live fixtures before Available status"
     ],
     [
       "Visual themes",

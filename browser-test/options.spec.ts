@@ -19,6 +19,9 @@ test("options loads accessibly and supports local grade scenarios", async ({}, t
           detected: { "institution-header": 1, "right-rail": 1 },
           layoutWarning: "Layout styling was rolled back: right-rail was hidden or collapsed.",
           nativePreserved: ["Logos and course images"],
+          route: "home",
+          routeStatus: "Available",
+          routeStatusDetail: "Fixture and browser coverage.",
           themed: ["institution-header", "right-rail"],
           unsupported: ["Dashboard grid"],
           updatedAt: new Date().toISOString()
@@ -38,6 +41,7 @@ test("options loads accessibly and supports local grade scenarios", async ({}, t
     await expect(page.getByText("Institution header and primary navigation (1)")).toBeVisible();
     await expect(page.getByText("Logos and course images")).toBeVisible();
     await expect(page.getByText(/Layout styling was rolled back/)).toBeVisible();
+    await expect(page.getByText(/Current route: home — Available/)).toBeVisible();
     await expect(page.getByText("SchoologyPlus compatibility reference")).toBeVisible();
     await expect(page.getByRole("table")).toContainText("Home shell and To Do rail");
     await expect(page.getByRole("table")).toContainText("API-key and analytics features");

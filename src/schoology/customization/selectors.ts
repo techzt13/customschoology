@@ -1,6 +1,7 @@
 /*
- * Home-shell compatibility selectors include adapted portions of aopell/SchoologyPlus
- * src/styles/modern/all.scss and src/scripts/pages/home.ts at commit
+ * Home and course-shell compatibility selectors include adapted portions of
+ * aopell/SchoologyPlus src/styles/modern/all.scss and src/scripts/pages/home.ts,
+ * course.ts, materials.ts, material.ts, page.ts, and grades.ts at commit
  * 85e2e869678570179fba6ba554d5ca0b469ff3ec.
  *
  * Copyright (c) 2017-2024 Aaron Opell and Glen Husman
@@ -9,9 +10,9 @@
  */
 
 import type { NativeThemeRegion, ThemeCompatibilityReport } from "../../shared/models";
-import { isHomeRoute } from "../routes";
+import { isCourseExperienceRoute, isHomeRoute, routeCompatibilityStatus } from "../routes";
 
-export const SELECTOR_CONTRACT_VERSION = 3;
+export const SELECTOR_CONTRACT_VERSION = 4;
 export const REGION_ATTRIBUTE = "data-sc-region";
 export const THEME_ROLE_ATTRIBUTE = "data-sc-theme-role";
 
@@ -27,9 +28,21 @@ export const REGION_LABELS: Record<NativeThemeRegion, string> = {
   "page-canvas": "Page canvas",
   "home-feed": "Recent Activity feed",
   "home-shell": "Home shell",
+  "course-shell": "Course route shell",
+  "course-header": "Course title and action header",
+  "course-sidebar": "Course sidebar",
+  "course-navigation": "Course navigation",
+  "course-main": "Course main reading surface",
+  "course-image": "Course image",
+  breadcrumbs: "Breadcrumbs",
   "dashboard-grid": "Dashboard grid",
   "course-card": "Course cards",
+  "course-card-media": "Course card media",
   "course-card-content": "Course card text areas",
+  "materials-toolbar": "Materials toolbar and actions",
+  "materials-list": "Materials list",
+  "material-row": "Material and folder rows",
+  "authored-content": "Teacher-authored reading content",
   "left-rail": "Left rail",
   "right-rail": "Right To Do and upcoming rail",
   "right-rail-inner": "Right To Do and upcoming rail sections",
@@ -43,11 +56,22 @@ const REGION_PRIORITY: Record<NativeThemeRegion, number> = {
   "institution-header": 100,
   "center-top": 95,
   "dashboard-tabs": 90,
+  "authored-content": 89,
+  "material-row": 88,
+  "materials-toolbar": 87,
+  "materials-list": 86,
   "course-card-content": 85,
+  "course-card-media": 84,
   "course-card": 80,
+  "course-header": 79,
   "right-rail-inner": 78,
+  "course-navigation": 77,
+  "course-sidebar": 76,
   "right-rail": 75,
   "left-rail": 75,
+  breadcrumbs: 74,
+  "course-image": 73,
+  "course-main": 64,
   modal: 70,
   popover: 70,
   footer: 60,
@@ -55,6 +79,7 @@ const REGION_PRIORITY: Record<NativeThemeRegion, number> = {
   "home-feed": 62,
   "center-column": 60,
   "content-wrapper": 58,
+  "course-shell": 56,
   "home-shell": 55,
   surface: 50,
   "page-canvas": 10
@@ -95,11 +120,15 @@ const DIRECT_REGION_QUERIES: RegionQueries = {
     ".course-dashboard .course-item"
   ],
   "course-card-content": [
-    ".course-dashboard .sgy-card-lens",
     ".course-dashboard .course-dashboard__card-context",
     "[data-testid*='course-card'] [data-testid*='content']",
     ".course-card .card-content",
     ".course-card .course-card-content"
+  ],
+  "course-card-media": [
+    ".course-dashboard .sgy-card-lens",
+    ".course-dashboard .course-dashboard__card-image",
+    "[data-testid*='course-card'] [data-testid*='image']"
   ],
   "left-rail": ["#left-column", "[data-testid='left-rail']", "[aria-label*='course navigation' i]"],
   "right-rail": [
@@ -134,12 +163,71 @@ const HOME_ROUTE_REGION_QUERIES: Partial<Record<NativeThemeRegion, readonly stri
   "right-rail-inner": ["#right-column-inner"]
 };
 
+// Selector knowledge adapted from the pinned SchoologyPlus modern course/materials styles and
+// route modules listed in this file's MIT header. Unknown course structures remain untouched.
+const COURSE_ROUTE_REGION_QUERIES: Partial<Record<NativeThemeRegion, readonly string[]>> = {
+  "course-shell": ["#main-content-wrapper"],
+  "center-column": ["#main-content-wrapper > #center", "#center"],
+  "center-top": ["#center-top"],
+  "course-header": [
+    "#center-top .content-top-upper",
+    "#center-top .page-title",
+    "#center-top .course-title"
+  ],
+  "course-sidebar": ["#sidebar-left"],
+  "course-navigation": [
+    "#sidebar-left #left-nav",
+    "#sidebar-left #menu-s-main",
+    "#sidebar-left [aria-label*='course navigation' i]"
+  ],
+  "course-main": ["#center div#main", "#main", "#main-inner", "#content-wrapper"],
+  "course-image": [".course-image"],
+  breadcrumbs: [
+    "nav[aria-label*='breadcrumb' i]",
+    ".breadcrumb",
+    "[class*='nav-breadcrumb-container-']"
+  ],
+  "materials-toolbar": [
+    ".materials-top",
+    ".materials-filter-wrapper",
+    "#course-profile-materials > .action-links",
+    "#course-profile-materials > .materials-top"
+  ],
+  "materials-list": ["#course-profile-materials", "#folder-contents-table", ".materials-list"],
+  "material-row": [
+    "#course-profile-materials > [class*='type-']",
+    "#course-profile-materials > .material-row",
+    "#folder-contents-table tr",
+    ".materials-list > li"
+  ],
+  "authored-content": [
+    "#important-post-body",
+    "#main-inner .info-container",
+    "#content-wrapper .info-container",
+    ".standard-page .s-page-content-full",
+    ".s-page-summary",
+    ".user-generated-content",
+    ".material-content",
+    ".assignment-content",
+    ".instructions-content",
+    ".folder-description",
+    ".item-info"
+  ],
+  "right-rail": ["#main-content-wrapper > #right-column", "#right-column"],
+  "right-rail-inner": ["#right-column-inner"]
+};
+
 function addRegion(
   regions: Map<NativeThemeRegion, Set<HTMLElement>>,
   region: NativeThemeRegion,
-  element: Element | null
+  element: Element | null,
+  allowAuthored = false
 ): void {
-  if (!(element instanceof HTMLElement) || element.matches(STATUS_OR_AUTHORED_CONTENT)) return;
+  if (
+    !(element instanceof HTMLElement) ||
+    (!allowAuthored && element.matches(STATUS_OR_AUTHORED_CONTENT))
+  )
+    return;
   const entries = regions.get(region) ?? new Set<HTMLElement>();
   entries.add(element);
   regions.set(region, entries);
@@ -207,6 +295,7 @@ function discoverStructuralRegions(
 }
 
 function annotateThemeRoles(region: HTMLElement): void {
+  if (region.dataset.scRegion === "authored-content") return;
   const candidates = region.querySelectorAll<HTMLElement>(
     "a, button, input, select, textarea, [role='button'], [role='tab'], h1, h2, h3, h4, h5, h6, label, [data-empty], .empty-state"
   );
@@ -275,6 +364,17 @@ export function discoverThemeRegions(document: Document): ThemeCompatibilityRepo
       }
     }
   }
+  if (isCourseExperienceRoute(pathname)) {
+    for (const [region, queries] of Object.entries(COURSE_ROUTE_REGION_QUERIES) as Array<
+      [NativeThemeRegion, readonly string[]]
+    >) {
+      for (const selector of queries) {
+        for (const element of document.querySelectorAll(selector)) {
+          addRegion(regions, region, element, region === "authored-content");
+        }
+      }
+    }
+  }
   discoverStructuralRegions(document, regions);
 
   const detected: Partial<Record<NativeThemeRegion, number>> = {};
@@ -288,10 +388,15 @@ export function discoverThemeRegions(document: Document): ThemeCompatibilityRepo
         ![
           "page-canvas",
           "home-shell",
+          "course-shell",
           "center-column",
           "content-wrapper",
           "home-feed",
-          "dashboard-grid"
+          "dashboard-grid",
+          "course-main",
+          "course-card-media",
+          "materials-list",
+          "authored-content"
         ].includes(region)
       ) {
         annotateThemeRoles(element);
@@ -300,12 +405,14 @@ export function discoverThemeRegions(document: Document): ThemeCompatibilityRepo
   }
   const expected: NativeThemeRegion[] = [
     "institution-header",
-    "dashboard-tabs",
     "page-canvas",
     "center-column",
-    "dashboard-grid",
-    "course-card",
-    "right-rail"
+    ...(hasProvenHomeShell
+      ? (["dashboard-tabs", "dashboard-grid", "course-card", "right-rail"] as NativeThemeRegion[])
+      : []),
+    ...(isCourseExperienceRoute(pathname)
+      ? (["course-shell", "course-header", "course-main"] as NativeThemeRegion[])
+      : [])
   ];
   const themed = [
     ...new Set(
@@ -314,6 +421,7 @@ export function discoverThemeRegions(document: Document): ThemeCompatibilityRepo
         .filter(Boolean)
     )
   ];
+  const routeStatus = routeCompatibilityStatus(pathname);
   return {
     detected,
     nativePreserved: [
@@ -322,6 +430,9 @@ export function discoverThemeRegions(document: Document): ThemeCompatibilityRepo
       "Authored course content",
       "Images and iframes"
     ],
+    route: routeStatus.route,
+    routeStatus: routeStatus.status,
+    routeStatusDetail: routeStatus.detail,
     themed,
     unsupported: expected
       .filter((region) => !regions.has(region))

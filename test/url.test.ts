@@ -23,6 +23,7 @@ describe("Schoology URL classification", () => {
     ["/home/course-dashboard", "home"],
     ["/course/42/materials", "materials"],
     ["/course/42/materials/7", "material"],
+    ["/assignment/7", "assignment"],
     ["/course/42/student_grades", "grades"],
     ["/assignment/7/assessment", "assessment"],
     ["/course/42", "course"],

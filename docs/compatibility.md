@@ -3,95 +3,66 @@
 Compatibility research is pinned to
 [aopell/SchoologyPlus@85e2e869](https://github.com/aopell/SchoologyPlus/commit/85e2e869678570179fba6ba554d5ca0b469ff3ec).
 The upstream project is MIT licensed; attribution and the full notice are in
-[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md). The comparison is a coverage reference, not a
-claim that synthetic tests establish real-site parity. Exact copied/adapted fragments are recorded
-in the [upstream source map](upstream-source-map.md).
+[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md). Exact copied/adapted fragments are recorded in
+the [upstream source map](upstream-source-map.md).
+
+`Available` below means the route or component has repository fixture, unit, accessibility, reset,
+and unpacked-Chromium coverage. It does **not** mean every institution-specific live DOM has passed
+manual sign-off.
 
 ## SchoologyPlus reference coverage
 
-| Referenced upstream module/capability                                                             | Our status                                         | Implementation path                                                                                   | Why this implementation differs                                                                               |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `content.ts` home route dispatch                                                                  | Available                                          | Typed `/`, `/home`, `/home/recent-activity`, and `/home/course-dashboard` matcher                     | Shared by discovery and independent feature gates; no upstream loader or analytics                            |
-| `content.ts` course/materials/grades routes                                                       | Route coverage available; DOM support experimental | Typed course, materials, material, grades, page, user, and plural courses patterns                    | A matched URL does not claim DOM compatibility; each adapter still detects support independently              |
-| `content.ts` assessment route                                                                     | Experimental                                       | Exact route matcher plus fail-closed supported-control inspection                                     | Warns only when unanswered detection is reliable                                                              |
-| `styles/all.scss` native header controls and menus                                                | Experimental                                       | Pinned direct compatibility paint for proven hashed/header selectors                                  | Pairs foreground and background while preserving native geometry, logos, and multicolor icons                 |
-| `pages/all.ts` header SVG color normalization                                                     | Experimental                                       | Header-bounded `#333` to `currentColor` conversion with exact disable restoration                     | No broad SVG rewriting; brand and nonmatching fills remain native                                             |
-| `modern/all.scss` home shell and right rail                                                       | Experimental                                       | Direct paint plus limited overflow/min-width safeguards for proven home routes                        | Never constrains the whole shell; unsafe structural styling rolls back independently                          |
-| `modern/all.scss` dashboard/card selectors                                                        | Experimental                                       | Direct `.course-dashboard`, `.sgy-card`, and `.sgy-card-lens` compatibility plus semantic annotations | Original presets and workspace preferences remain reversible; imagery/statuses remain native                  |
-| `home.ts` home selector knowledge                                                                 | Experimental                                       | Versioned home-shell, tabs, feed, center, dashboard, and right-rail regions                           | Adds diagnostics, contrast, and extension-owned annotations rather than upstream DOM rewrites                 |
-| `course.ts`, `courses.ts`, `materials.ts`, `material.ts`, `grades.ts`, `assessment.ts`, `page.ts` | Evaluated; feature code not copied                 | Original local-only adapters and workflows                                                            | Unrelated upstream product code was outside the verified shell regressions and remains gated pending real DOM |
-| Theme/default-theme utilities                                                                     | Original implementation available                  | Independent 16-token model, 20 immutable snapshots, and build-time state contrast matrices            | No remote themes/fonts/assets or silent invalid-preset correction                                             |
-| Grade modification                                                                                | Experimental alternative                           | Separate read-only, user-entered total-points scenario studio                                         | Never edits displayed official grades; weighted/dropped rules remain unsupported                              |
-| API-key tools                                                                                     | Unsupported                                        | Not implemented                                                                                       | Avoids credential storage until a separately reviewed need exists                                             |
-| Analytics                                                                                         | Unsupported by design                              | Not implemented                                                                                       | No telemetry or tracking                                                                                      |
+| Referenced upstream module/capability                                                          | Our status                            | Implementation path                                                                                              | Why this implementation differs                                                                |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `content.ts` route dispatch                                                                    | Available                             | Typed home, course, materials, material, assignment, page, grades, and assessment matcher                        | Shared by independent feature gates; no upstream loader or analytics                           |
+| `styles/all.scss` native header controls and menus                                             | Available; needs real-site validation | Pinned hashed/header selectors with paired state colors                                                          | Preserves native geometry, logos, and multicolor paths                                         |
+| `pages/all.ts` header SVG normalization                                                        | Available; needs real-site validation | Header-bounded `#333` to `currentColor` conversion with exact restoration                                        | No broad SVG rewriting                                                                         |
+| `modern/all.scss` home shell, right rail, and dashboard cards                                  | Available; needs real-site validation | Split paint/layout adapters, center-plus-rail safety, card media/metadata surfaces                               | No whole-shell width constraint, hidden core UI, or image recoloring                           |
+| `home.ts` selector knowledge                                                                   | Available; needs real-site validation | Versioned home-shell, tab, feed, dashboard, card, and rail regions                                               | Adds diagnostics, contrast, and reversible extension annotations                               |
+| `modern/all.scss` course navigation/materials/grade surfaces                                   | Available; needs real-site validation | Route-scoped title, sidebar, navigation, main, materials, authored-content, grade-summary, and Upcoming surfaces | Uses original preset tokens and per-surface rollback rather than global author-style overrides |
+| Selector knowledge from `course.ts`, `materials.ts`, `material.ts`, `page.ts`, and `grades.ts` | Available; needs real-site validation | Bounded adapters for verified Schoology structures                                                               | No upstream API fetch, grade editing, injected menus, downloads, or iframe mutation            |
+| `courses.ts` course-directory behavior                                                         | Experimental                          | Route recognized; unknown DOM remains native                                                                     | Needs a sanitized real fixture and Chromium coverage                                           |
+| `assessment.ts` feature implementation                                                         | Evaluated; not copied                 | Original fail-closed unanswered-item warning                                                                     | No wrapped-window patch or upstream modal behavior                                             |
+| Theme/default-theme utilities                                                                  | Original implementation available     | Independent 16-token model and 20 immutable presets                                                              | No upstream themes, remote fonts/assets, or silent invalid-preset correction                   |
+| Grade modification                                                                             | Unsupported; alternative available    | Separate read-only total-points scenario studio                                                                  | Never edits displayed official grades; unverified weighted/dropped rules remain unsupported    |
+| API-key tools and analytics                                                                    | Unsupported by design                 | Not implemented                                                                                                  | Avoids credentials and telemetry                                                               |
 
-Selector and route knowledge adapted from the pinned revision is centralized in
-`src/schoology/compatibility/schoology-plus-shell.ts`, `src/schoology/routes.ts`, and
-`src/schoology/customization/selectors.ts` under selector contract version 4.
+## Route and component status
 
-| Surface                                             | Current status             | Evidence                                                          |
-| --------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
-| Schoology-hosted home/upcoming page                 | Needs real-site validation | Adapter fixture and unit tests                                    |
-| Custom-domain home/upcoming page                    | Needs real-site validation | Progressive permission and dynamic script registration            |
-| Institution header and icon controls                | Experimental               | Pinned direct selectors, semantic discovery, and Chromium fixture |
-| Dashboard tabs, canvas, grid, and course cards      | Experimental               | Semantic discovery and Chromium workflow test                     |
-| Left rail and right To Do/upcoming rail             | Experimental               | Structural/label discovery and full-shell fixture                 |
-| Content surfaces, controls, modals, popovers        | Experimental               | Role/data/structural discovery tests                              |
-| Footer and responsive states                        | Experimental               | Annotated CSS and browser test artifact                           |
-| Course pages                                        | Needs real-site validation | URL contract tests                                                |
-| Materials pages                                     | Needs real-site validation | URL contract tests                                                |
-| Grade pages                                         | Needs real-site validation | URL contract tests                                                |
-| Course dashboard cards                              | Experimental               | Reversible workspace fixture tests                                |
-| Materials rows                                      | Experimental               | Known-layout adapter tests                                        |
-| Assessments                                         | Experimental               | Fail-closed supported-control tests                               |
-| Grade scenario studio                               | Available                  | Manual total-points calculations                                  |
-| Automatic grade import/weighted rule interpretation | Unsupported                | Awaiting verified rules and sanitized fixtures                    |
-| Firefox                                             | Unsupported                | Deferred until Chrome behavior stabilizes                         |
+| Surface or route                               | Status                                        | Automated evidence                                                                                                  | Remaining live validation                                      |
+| ---------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Home, Recent Activity, Course Dashboard        | Available; needs real-site validation         | Full-shell fixture, right-rail geometry, light-image card, full/narrow/zoom-equivalent Chromium, axe, reset/disable | Hashed tenant variants, real 200% Chrome zoom, screen readers  |
+| Dashboard card image/title/instructor metadata | Available; needs real-site validation         | Light-image regression fixture; 4.5:1 metadata scrim; title wrapping/containment; all-preset token matrix           | Additional live card markup variants and drag/reorder behavior |
+| Course home                                    | Available; needs real-site validation         | Route fixture; complete shell, focus, contrast, full/narrow/zoom-equivalent visual, axe, restoration                | Institution-customized course shells                           |
+| Materials list                                 | Available; needs real-site validation         | Toolbar, folder/material rows, long labels, CJK, LTI link wrapping, right rail, visual and axe checks               | Real folders, inline expansion, teacher controls               |
+| Material detail                                | Available; needs real-site validation         | Safe authored light reading surface, inline-color correction, long URL wrapping, per-surface fallback               | Real attachments, embeds, LTI/iframe combinations              |
+| Assignment detail                              | Available; needs real-site validation         | Route fixture, authored instructions, actions, focus, contrast, responsive visual, restoration                      | Submission widgets and institution plugins                     |
+| Page detail                                    | Available; needs real-site validation         | Route fixture, CJK authored content, responsive visual, restoration                                                 | Rich authored tables/media/embeds                              |
+| Grades overview and student gradebook          | Available; needs real-site validation         | Grade-summary/report surfaces, preserved official grade semantics, axe and restoration                              | Weighted/hierarchical tenant variants                          |
+| Assessment                                     | Available shell; warning feature experimental | Route fixture, instructions, controls, keyboard/focus, contrast, responsive visual, restoration                     | Real assessment engines and unknown question types             |
+| Course directory (`/courses`)                  | Experimental                                  | URL recognition only                                                                                                | Sanitized DOM fixture required                                 |
+| User/profile and institution-specific routes   | Unsupported for route shell                   | Unknown content remains native                                                                                      | Route-specific evidence required                               |
+| Firefox                                        | Unsupported                                   | None                                                                                                                | Chrome behavior must stabilize first                           |
 
-Experimental implementation is not a claim of production compatibility. Real adapter acceptance
-requires anonymized DOM fragments and manual validation from at least one Schoology-hosted and one
-custom-domain deployment.
+## Safety contract
 
-All 20 bundled visual presets pass the repository's complete semantic contrast matrix without
-runtime substitution. This validates the preset definitions and synthetic states, not the
-institution-specific computed backgrounds or browser behavior that still require real-site testing.
+- Recognized regions receive extension-owned `data-sc-region` and `data-sc-theme-role` annotations.
+  Unknown regions keep their native foreground and background together.
+- Logos, course imagery, iframes, authored media, and official grade/submission/status semantics
+  remain native. Course-card metadata never sits bare on an uncontrolled image; it receives a
+  deterministic dark metadata surface/scrim with white text.
+- Authored course content uses a coherent light reading surface. Bounded computed-contrast
+  correction fixes only failing readable descendants, including inline author colors, while
+  preserving passing author colors and excluding status/grade semantics and iframes.
+- The course fallback snapshots the native authored surface before paint. If visible content becomes
+  unreadable, overflows, collapses, or the main reading surface becomes unusable, only that authored
+  surface returns to its native paired foreground/background and settings shows a compatibility
+  warning.
+- Paint and layout are separate stylesheets. Critical shell geometry is checked after layout; a
+  failure removes only structural styling while retaining safe paint and contrast correction.
+- Neither native CSS layer changes `html`/`:root` font size, constrains a generic home/course shell
+  width, hides core UI, or adds analytics/network telemetry.
 
-Native customization discovers each semantic shell region independently using roles, labels, link
-destinations, data attributes, and bounded structural relationships. It annotates recognized
-elements with extension-owned attributes, and generated CSS targets only those annotations. Unknown
-regions retain Schoology's original background and foreground together. Logos, course images,
-authored course content, iframes, and official grade/submission/status semantics are preserved, but
-institution-specific status markup still requires manual verification.
-
-On recognized home routes, the adapter distinguishes the whole shell, center column, center header,
-content wrapper, dashboard/feed, outer right rail, and inner right-rail sections. It never applies a
-width or max-width to `body`, generic `main`, `#main`, `#main-content`, the home-shell parent, or a
-parent containing the right rail. Focused/wide reading widths apply only to a verified inner content
-wrapper and are skipped for a course dashboard.
-
-The pinned direct compatibility layer is route-gated and split into paint and layout output. Header
-paint pairs each changed control or menu background with a readable foreground but sets no width,
-height, padding, display, or positioning. On home routes it recognizes the proven shell, center,
-dashboard, cards, and right rail while leaving overall shell sizing native.
-
-Before structural rules are applied, the content script snapshots visible critical regions and
-native header controls. After layout, it checks that those regions remain rendered, onscreen, large
-enough, non-overlapping, and reasonably adjacent. A failure removes only the layout stylesheet,
-retains semantic color rules and contrast correction, and records a visible compatibility warning.
-This is a bounded safety net, not a substitute for real-browser validation.
-
-Legacy schema-v5 native-region and dashboard-card visibility flags have no current-version
-provenance and migrate to visible defaults. Current explicit visibility actions carry versioned
-provenance. Applying any visual preset restores left rail, right/To Do rail, and footer visibility;
-the recovery action also restores explicitly hidden dashboard cards.
-
-The grade studio deliberately does not read or edit native grade cells. Total-points scenarios are
-supported from user-entered values; weighted categories, dropped grades, extra credit, and automatic
-gradebook import remain explicitly unsupported until representative rules and sanitized fixtures are
-available.
-
-Automatic mode checks semantic links, tabs, headings, labels, and controls against their effective
-rendered background, including transparent ancestors. It may choose only semantic theme colors or
-black/white fallbacks and records no computed values. Preserve and Manual modes retain requested
-colors and report failures in settings; High Contrast applies a complete fixed palette. All runtime
-and region annotations are removed when customization is disabled.
+All 20 presets pass the complete semantic token/state contrast matrix without runtime substitution.
+Representative light, dark, high-contrast, expressive, and productivity presets also have full and
+narrow course-route Chromium artifacts. These checks do not replace real-account validation.
